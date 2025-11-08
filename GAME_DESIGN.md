@@ -12,6 +12,37 @@ Mountain Highway is a minimalist arcade game where players drive a car along a t
 
 **Failure Condition**: If the bridge is too short or too long, the car drives off the cliff and crashes, ending the game.
 
+## Course Structure
+
+A course defines the path the car will travel through the game.
+
+**Course Definition:**
+- Every course starts at the center of the first island at game coordinate (1,1)
+- A course consists of a sequence of **spans**
+- Each span connects one island to the next island
+- The course ends at a specific location on the final island
+
+**Spans:**
+- Each span travels in either the **column direction** (rightward on screen) or **row direction** (upward on screen)
+- Each span must be at least 3 grid squares in length
+- The end of each span (except the last) arrives at an island with a **junction**
+
+**Junctions:**
+- Junctions describe how the road turns between consecutive spans
+- **Left turn**: Column direction → Row direction
+- **Right turn**: Row direction → Column direction
+- **Straight ahead**: Direction remains the same (Column → Column or Row → Row)
+- Junction points must be at least 1 square away from the edge of the island
+
+**Example Course:**
+Starting at (1,1):
+1. Span 1: +4 columns to (5,1) → Island 2 with left turn
+2. Span 2: +5 rows to (5,6) → Island 3 straight ahead
+3. Span 3: +3 rows to (5,9) → Island 4 with right turn
+4. Span 4: +7 columns to (12,9) → Island 5 (final destination)
+
+This course requires 5 islands total: one at the start, one at the end of each span.
+
 ## Visual Style
 
 - **Aesthetic**: Minimalist design using straight lines and simple colors
@@ -59,6 +90,7 @@ Mountain Highway is a minimalist arcade game where players drive a car along a t
 - `index.html` - Main HTML page
 - `style.css` - Styling for canvas and page layout
 - `js/renderer.js` - Core rendering engine (islands, isometric projection)
+- `js/course.js` - Course definition and management (spans, junctions, directions)
 - `js/game.js` - Game loop, island data, and main logic
 - `js/debug.js` - Debug utilities (grid, island numbering)
 
@@ -160,9 +192,11 @@ Both debug features are disabled by default and render on a separate layer above
 - ✅ Proper edge rendering (visible edges only)
 - ✅ Correct render ordering (highest row to lowest row)
 - ✅ Walls extending off-screen to simulate deep cliffs
+- ✅ Course structure (spans, directions, junctions)
+- ✅ Debug utilities separated into dedicated module
 
 ### In Progress
-- 🔄 Road rendering on islands
+- 🔄 Road rendering along course spans
 
 ### Planned
 - ⏳ Vertical scrolling

@@ -10,10 +10,18 @@ class Game {
         this.showDebugGrid = false;
         this.showIslandNumbers = false;
 
+        // Create the example course
+        this.course = createExampleCourse();
+
         this.init();
     }
 
     init() {
+        // Log course details for verification
+        console.log('Course start:', this.course.startRow, this.course.startCol);
+        console.log('Course end:', this.course.getEndLocation());
+        console.log('Span details:', this.course.getSpanDetails());
+
         // Initial render
         this.render();
     }
