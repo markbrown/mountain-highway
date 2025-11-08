@@ -222,7 +222,7 @@ class Game {
             }
         }
 
-        // Draw current bridge being animated
+        // Draw current bridge being animated (only if it hasn't been completed yet)
         if (this.currentBridge < this.bridgeSequence.length) {
             const pos = bridgePositions[this.currentBridge];
 
@@ -244,17 +244,8 @@ class Game {
                     this.renderer.drawRotatingBridge(pos.edgeRow, pos.baseCol, pos.direction, this.bridgeLength, this.bridgeRotation, blockSize);
                     this.renderer.drawBridgeEdgeLine(pos.edgeRow, pos.baseCol, pos.direction, blockSize);
                 }
-            } else if (this.gameState === 'bridge_done' || this.gameState === 'driving') {
-                // Draw horizontal bridge if it's been placed
-                if (this.bridgeRotation >= Math.PI / 2) {
-                    const bridgeData = this.bridgeSequence[this.currentBridge];
-                    if (pos.direction === 'column') {
-                        this.renderer.drawHorizontalBridge(pos.baseRow, pos.edgeCol - 0.1, pos.direction, bridgeData.targetLength + 0.1, blockSize);
-                    } else {
-                        this.renderer.drawHorizontalBridge(pos.edgeRow - 0.1, pos.baseCol, pos.direction, bridgeData.targetLength + 0.1, blockSize);
-                    }
-                }
             }
+            // Note: Once bridge_done, the bridge moves to the "completed bridges" section above
         }
 
         // Draw car at current position
