@@ -88,6 +88,8 @@ This course requires 5 islands total: one at the start, one at the end of each s
 
 **Bridge Growth:**
 - Bridge is a rectangle, same width as the road (1 unit)
+- Bridge color: Same dark gray as road (#444444)
+- No border lines on bridge - blends seamlessly with road when horizontal
 - Grows from the exact edge of the island along the road centerline
 - Growth rate: 2 units per second
 - Minimum length: 0 (instant click/release)
@@ -96,7 +98,15 @@ This course requires 5 islands total: one at the start, one at the end of each s
   - **Left/Right turn**: Distance to outside corner
 - Bridge stops growing at maximum length but stays vertical until released
 - While growing: displayed as vertical rectangle (rotated 90°)
-- When released: quick animation rotating down to horizontal
+- When released: quick animation rotating down to horizontal (0.2 seconds)
+
+**Bridge Rendering:**
+- Vertical bridge: Rectangle extending upward from island edge
+- Rotation animation: Bridge pivots from base edge where it attaches to road
+- Horizontal bridge: Starts 0.1 units back onto island to cover edge line
+- Edge line behavior:
+  - While bridge is vertical/rotating: Black edge line redrawn on top of bridge
+  - When bridge is horizontal: Edge line is covered by bridge for seamless road appearance
 
 **Bridge Success Conditions:**
 
@@ -125,12 +135,22 @@ For **turns** (left or right):
 - Game over requires restart from beginning of course
 
 ### Car Movement
-- Car moves forward automatically at constant speed
-- Player does not control steering, only bridge extension
-- Car follows the road path on islands
-- Car follows bridge when crossing gaps
-- Car stops with front bumper just before island edge (waiting for bridge)
-- After bridge drops, car immediately continues forward
+
+**Car Appearance:**
+- Red rectangle with black outline
+- Dimensions: 0.6 units long × 0.4 units wide
+- Oriented based on current direction (column or row)
+- Front bumper extends 0.3 units ahead of car center
+
+**Car Behavior:**
+- Speed: 2 units per second (constant)
+- Movement: Automatic forward movement along road
+- Steering: Player does not control - car follows course path automatically
+- Turns: Instantaneous direction change at junction points
+- Stopping: Front bumper stops 0.05 units before island edge
+  - Stopping position = edge position - 0.3 (half car length) - 0.05 (margin)
+  - Car waits at edge for bridge to be built
+- After bridge drops: Car immediately continues forward across bridge
 
 ## Technical Details
 
@@ -292,13 +312,20 @@ Both debug features are disabled by default and render on a separate layer above
 - ✅ Debug utilities separated into dedicated module
 - ✅ Road rendering on islands (straight roads and L-shaped turns)
 - ✅ Systematic road geometry calculation for all junction types
+- ✅ Bridge rendering system (vertical, rotating, horizontal)
+- ✅ Bridge animation (growth, slam down, seamless integration with road)
+- ✅ Car sprite rendering (0.6×0.4 units, red with black outline)
+- ✅ Car movement along course path
+- ✅ Automatic car stopping at island edges
+- ✅ Car turning at junctions (instantaneous direction change)
+- ✅ Coordinated animation sequence (car movement + bridge building)
 
 ### Planned
-- ⏳ Vertical scrolling
-- ⏳ Car sprite and movement
-- ⏳ Bridge extension mechanic
-- ⏳ Mouse input handling
-- ⏳ Collision detection
-- ⏳ Game loop and timing system
-- ⏳ Start/game over screens
+- ⏳ Mouse input handling for bridge building
+- ⏳ Player-controlled bridge length (hold duration)
+- ⏳ Bridge length validation and success/failure logic
+- ⏳ Car falling animation (bridge too short/long)
+- ⏳ Vertical scrolling to follow car
+- ⏳ Collision detection (car driving off edge)
+- ⏳ Game states (start screen, playing, game over, win)
 - ⏳ Sound effects

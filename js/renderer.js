@@ -548,4 +548,55 @@ class Renderer {
         this.ctx.lineTo(corner2.x * blockSize, corner2.y * blockSize);
         this.ctx.stroke();
     }
+
+    /**
+     * Draw a car at a specific position
+     * @param {number} row - game grid row
+     * @param {number} col - game grid column
+     * @param {string} direction - 'row' or 'column' (direction car is facing)
+     * @param {number} blockSize - size of each grid square in pixels
+     */
+    drawCar(row, col, direction, blockSize) {
+        const carColor = '#FF0000'; // Red
+        const carLength = 0.6; // Length of car in game units
+        const carWidth = 0.4; // Width of car in game units
+
+        // Calculate car corners based on direction
+        let corner1, corner2, corner3, corner4;
+
+        if (direction === 'column') {
+            // Car faces in column direction (rightward on screen)
+            // Car centered at (row, col), extends from col-length/2 to col+length/2
+            const halfLength = carLength / 2;
+            const halfWidth = carWidth / 2;
+
+            corner1 = this.gameToScreen(row - halfWidth, col - halfLength, 0);
+            corner2 = this.gameToScreen(row - halfWidth, col + halfLength, 0);
+            corner3 = this.gameToScreen(row + halfWidth, col + halfLength, 0);
+            corner4 = this.gameToScreen(row + halfWidth, col - halfLength, 0);
+        } else {
+            // Car faces in row direction (upward on screen)
+            // Car centered at (row, col), extends from row-length/2 to row+length/2
+            const halfLength = carLength / 2;
+            const halfWidth = carWidth / 2;
+
+            corner1 = this.gameToScreen(row - halfLength, col - halfWidth, 0);
+            corner2 = this.gameToScreen(row + halfLength, col - halfWidth, 0);
+            corner3 = this.gameToScreen(row + halfLength, col + halfWidth, 0);
+            corner4 = this.gameToScreen(row - halfLength, col + halfWidth, 0);
+        }
+
+        this.ctx.fillStyle = carColor;
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 1;
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(corner1.x * blockSize, corner1.y * blockSize);
+        this.ctx.lineTo(corner2.x * blockSize, corner2.y * blockSize);
+        this.ctx.lineTo(corner3.x * blockSize, corner3.y * blockSize);
+        this.ctx.lineTo(corner4.x * blockSize, corner4.y * blockSize);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+    }
 }

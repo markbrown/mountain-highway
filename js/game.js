@@ -13,15 +13,20 @@ class Game {
         // Create the example course
         this.course = createExampleCourse();
 
+        // Car state
+        this.carRow = 1;
+        this.carCol = 1;
+        this.carDirection = 'column'; // Direction car is facing
+        this.carSpeed = 2.0; // units per second
+
         // Bridge animation state
         this.bridgeGrowthRate = 2.0; // units per second
         this.slamDuration = 0.2; // 0.2 seconds to slam down
-        this.pauseDuration = 1.0; // 1 second pause between bridges
 
         // Current bridge being animated (0, 1, or 2 for bridges 1-3)
         this.currentBridge = 0;
 
-        // Bridge sequence definition: [holdTime, baseRow, baseCol, direction]
+        // Bridge sequence definition
         this.bridgeSequence = [
             { holdTime: 1.25, targetLength: 2.5 }, // Bridge 1: island 1 to 2
             { holdTime: 1.75, targetLength: 3.5 }, // Bridge 2: island 2 to 3
@@ -29,9 +34,13 @@ class Game {
         ];
 
         this.bridgeLength = 0;
-        this.bridgeState = 'growing'; // 'growing', 'slamming', 'pausing', 'done'
         this.bridgeRotation = 0; // 0 = vertical, Math.PI/2 = horizontal
-        this.stateProgress = 0; // Progress within current state
+
+        // Game state machine
+        // States: 'driving', 'waiting', 'bridge_growing', 'bridge_slamming', 'done'
+        this.gameState = 'driving';
+        this.stateProgress = 0;
+        this.targetPosition = 0; // Target row or col for current drive
         this.lastTime = 0;
 
         this.init();
@@ -42,6 +51,11 @@ class Game {
         console.log('Course start:', this.course.startRow, this.course.startCol);
         console.log('Course end:', this.course.getEndLocation());
         console.log('Span details:', this.course.getSpanDetails());
+
+        // Initialize: car drives to edge of first island (column 2 - car half-length - small margin)
+        // Car is 0.6 units long, so front bumper is 0.3 units ahead of center
+        this.targetPosition = 2 - 0.3 - 0.05; // Stop with front bumper just before edge
+        this.gameState = 'driving';
 
         // Start animation loop
         requestAnimationFrame((time) => this.animate(time));
@@ -55,57 +69,98 @@ class Game {
         const deltaTime = (currentTime - this.lastTime) / 1000; // Convert to seconds
         this.lastTime = currentTime;
 
-        // Check if all bridges are done
-        if (this.bridgeState === 'done') {
+        if (this.gameState === 'done') {
             this.render();
             return;
         }
 
-        const currentBridgeData = this.bridgeSequence[this.currentBridge];
-
-        // Update bridge animation state machine
-        if (this.bridgeState === 'growing') {
+        // State machine for coordinating car movement and bridge animations
+        if (this.gameState === 'driving') {
+            // Move car toward target position
+            if (this.carDirection === 'column') {
+                this.carCol += this.carSpeed * deltaTime;
+                if (this.carCol >= this.targetPosition) {
+                    this.carCol = this.targetPosition;
+                    this.gameState = 'waiting';
+                }
+            } else {
+                this.carRow += this.carSpeed * deltaTime;
+                if (this.carRow >= this.targetPosition) {
+                    this.carRow = this.targetPosition;
+                    this.gameState = 'waiting';
+                }
+            }
+        } else if (this.gameState === 'waiting') {
+            // Start bridge animation
+            this.bridgeLength = 0;
+            this.bridgeRotation = 0;
+            this.gameState = 'bridge_growing';
+        } else if (this.gameState === 'bridge_growing') {
+            const currentBridgeData = this.bridgeSequence[this.currentBridge];
             this.bridgeLength += this.bridgeGrowthRate * deltaTime;
 
             if (this.bridgeLength >= currentBridgeData.targetLength) {
                 this.bridgeLength = currentBridgeData.targetLength;
-                this.bridgeState = 'slamming';
+                this.gameState = 'bridge_slamming';
                 this.stateProgress = 0;
             }
-        } else if (this.bridgeState === 'slamming') {
+        } else if (this.gameState === 'bridge_slamming') {
             this.stateProgress += deltaTime;
 
             if (this.stateProgress >= this.slamDuration) {
-                this.stateProgress = this.slamDuration;
                 this.bridgeRotation = Math.PI / 2; // Horizontal
-                this.bridgeState = 'pausing';
-                this.stateProgress = 0;
+                this.gameState = 'bridge_done';
             } else {
                 const t = this.stateProgress / this.slamDuration;
                 this.bridgeRotation = (Math.PI / 2) * t;
             }
-        } else if (this.bridgeState === 'pausing') {
-            this.stateProgress += deltaTime;
-
-            if (this.stateProgress >= this.pauseDuration) {
-                // Move to next bridge
-                this.currentBridge++;
-                if (this.currentBridge >= this.bridgeSequence.length) {
-                    // All bridges complete
-                    this.bridgeState = 'done';
-                } else {
-                    // Start next bridge
-                    this.bridgeLength = 0;
-                    this.bridgeRotation = 0;
-                    this.bridgeState = 'growing';
-                    this.stateProgress = 0;
-                }
-            }
+        } else if (this.gameState === 'bridge_done') {
+            // Advance to next segment
+            this.advanceToNextSegment();
         }
 
         // Continue animation
         this.render();
         requestAnimationFrame((time) => this.animate(time));
+    }
+
+    advanceToNextSegment() {
+        // Segments: 0->bridge1, 1->junction1, 2->bridge2, 3->junction2, 4->bridge3, 5->junction3, 6->edge of island 4
+        this.currentBridge++;
+
+        if (this.currentBridge === 1) {
+            // Just crossed bridge 1, drive to junction 1 at (1,5) then turn left
+            this.targetPosition = 5;
+            this.gameState = 'driving';
+            // After reaching junction, car will be at (1,5) facing column, need to turn to row
+            setTimeout(() => {
+                this.carDirection = 'row';
+                this.targetPosition = 2 - 0.3 - 0.05; // Drive to edge of island 2
+                this.gameState = 'driving';
+            }, ((5 - this.carCol) / this.carSpeed) * 1000);
+        } else if (this.currentBridge === 2) {
+            // Just crossed bridge 2, drive to junction 2 at (6,5), straight ahead
+            this.targetPosition = 6;
+            this.gameState = 'driving';
+            // No turn needed, continue to edge of island 3
+            setTimeout(() => {
+                this.targetPosition = 7 - 0.3 - 0.05; // Drive to edge of island 3
+                this.gameState = 'driving';
+            }, ((6 - this.carRow) / this.carSpeed) * 1000);
+        } else if (this.currentBridge === 3) {
+            // Just crossed bridge 3, drive to junction 3 at (9,5) then turn right
+            this.targetPosition = 9;
+            this.gameState = 'driving';
+            // After reaching junction, turn from row to column
+            setTimeout(() => {
+                this.carDirection = 'column';
+                this.targetPosition = 8 - 0.3 - 0.05; // Drive to edge of island 4
+                this.gameState = 'driving';
+            }, ((9 - this.carRow) / this.carSpeed) * 1000);
+        } else {
+            // Reached end
+            this.gameState = 'done';
+        }
     }
 
     render() {
@@ -167,11 +222,11 @@ class Game {
             }
         }
 
-        // Draw current bridge being animated (if not done with all)
-        if (this.bridgeState !== 'done') {
+        // Draw current bridge being animated
+        if (this.currentBridge < this.bridgeSequence.length) {
             const pos = bridgePositions[this.currentBridge];
 
-            if (this.bridgeState === 'growing') {
+            if (this.gameState === 'bridge_growing') {
                 // Draw vertical bridge
                 if (pos.direction === 'column') {
                     this.renderer.drawVerticalBridge(pos.baseRow, pos.edgeCol, pos.direction, this.bridgeLength, blockSize);
@@ -180,7 +235,7 @@ class Game {
                     this.renderer.drawVerticalBridge(pos.edgeRow, pos.baseCol, pos.direction, this.bridgeLength, blockSize);
                     this.renderer.drawBridgeEdgeLine(pos.edgeRow, pos.baseCol, pos.direction, blockSize);
                 }
-            } else if (this.bridgeState === 'slamming') {
+            } else if (this.gameState === 'bridge_slamming') {
                 // Draw rotating bridge
                 if (pos.direction === 'column') {
                     this.renderer.drawRotatingBridge(pos.baseRow, pos.edgeCol, pos.direction, this.bridgeLength, this.bridgeRotation, blockSize);
@@ -189,25 +244,21 @@ class Game {
                     this.renderer.drawRotatingBridge(pos.edgeRow, pos.baseCol, pos.direction, this.bridgeLength, this.bridgeRotation, blockSize);
                     this.renderer.drawBridgeEdgeLine(pos.edgeRow, pos.baseCol, pos.direction, blockSize);
                 }
-            } else if (this.bridgeState === 'pausing') {
-                // Draw horizontal bridge during pause
-                if (pos.direction === 'column') {
-                    this.renderer.drawHorizontalBridge(pos.baseRow, pos.edgeCol - 0.1, pos.direction, this.bridgeLength + 0.1, blockSize);
-                } else {
-                    this.renderer.drawHorizontalBridge(pos.edgeRow - 0.1, pos.baseCol, pos.direction, this.bridgeLength + 0.1, blockSize);
+            } else if (this.gameState === 'bridge_done' || this.gameState === 'driving') {
+                // Draw horizontal bridge if it's been placed
+                if (this.bridgeRotation >= Math.PI / 2) {
+                    const bridgeData = this.bridgeSequence[this.currentBridge];
+                    if (pos.direction === 'column') {
+                        this.renderer.drawHorizontalBridge(pos.baseRow, pos.edgeCol - 0.1, pos.direction, bridgeData.targetLength + 0.1, blockSize);
+                    } else {
+                        this.renderer.drawHorizontalBridge(pos.edgeRow - 0.1, pos.baseCol, pos.direction, bridgeData.targetLength + 0.1, blockSize);
+                    }
                 }
             }
-        } else {
-            // All done - draw final bridge
-            const pos = bridgePositions[this.currentBridge - 1];
-            const bridgeData = this.bridgeSequence[this.currentBridge - 1];
-
-            if (pos.direction === 'column') {
-                this.renderer.drawHorizontalBridge(pos.baseRow, pos.edgeCol - 0.1, pos.direction, bridgeData.targetLength + 0.1, blockSize);
-            } else {
-                this.renderer.drawHorizontalBridge(pos.edgeRow - 0.1, pos.baseCol, pos.direction, bridgeData.targetLength + 0.1, blockSize);
-            }
         }
+
+        // Draw car at current position
+        this.renderer.drawCar(this.carRow, this.carCol, this.carDirection, blockSize);
 
         // Draw debug overlays (on top of everything)
         if (this.showIslandNumbers) {
