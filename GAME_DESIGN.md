@@ -129,6 +129,54 @@ The game uses a **row/column** coordinate system distinct from screen coordinate
   - Front vertical edge (where the two walls meet at the near corner)
   - Two side vertical edges (where top meets each wall on left and right)
 
+### Road Geometry
+Roads are rendered on island surfaces to show the course path. Each road is 1 unit wide and colored dark grey (#444444).
+
+**Road Width:**
+- Roads are centered on the course centerline
+- 1 unit total width (0.5 units on each side of centerline)
+- For a course in row direction at column C: road extends from (C-0.5) to (C+0.5)
+- For a course in column direction at row R: road extends from (R-0.5) to (R+0.5)
+
+**Straight Roads:**
+- When entry and exit directions are the same (column→column or row→row)
+- Road runs from the near corner to the far corner of the island
+- Forms a straight rectangular strip 1 unit wide
+
+**L-Shaped Roads (Turns):**
+- When entry and exit directions differ (column→row or row→column)
+- Road forms an L-shape connecting entry and exit edges
+- Six corners define the L-shape polygon
+
+**Systematic Road Calculation:**
+1. **Entry edge**: Determined by entry direction and near corner coordinate
+   - Column direction: starts at near corner column
+   - Row direction: starts at near corner row
+2. **Entry sides**: ±0.5 perpendicular to entry direction from junction point
+3. **Exit edge**: Determined by exit direction and far corner coordinate
+   - Column direction: ends at far corner column
+   - Row direction: ends at far corner row
+4. **Exit sides**: ±0.5 perpendicular to exit direction from junction point
+5. **Corner calculation**:
+   - For left turns (column→row): outside corner at (startSide1, endSide2), inside corner at (startSide2, endSide1)
+   - For right turns (row→column): outside corner at (endSide2, startSide1), inside corner at (endSide1, startSide2)
+
+**Example - Left Turn (column→row):**
+- Island at (0,4) size 2x2, junction at (1,5)
+- Entry: column direction, startPoint = 4 (near corner column)
+- Entry sides: row 1 ± 0.5 = (0.5, 1.5)
+- Exit: row direction, endPoint = 2 (far corner row = 0+2)
+- Exit sides: column 5 ± 0.5 = (4.5, 5.5)
+- Six corners: (0.5,4), (0.5,5.5), (2,5.5), (2,4.5), (1.5,4.5), (1.5,4)
+
+**Example - Right Turn (row→column):**
+- Island at (8,4) size 4x2, junction at (9,5)
+- Entry: row direction, startPoint = 8 (near corner row)
+- Entry sides: column 5 ± 0.5 = (4.5, 5.5)
+- Exit: column direction, endPoint = 8 (far corner column = 4+4)
+- Exit sides: row 9 ± 0.5 = (8.5, 9.5)
+- Six corners: (8,4.5), (9.5,4.5), (9.5,8), (8.5,8), (8.5,5.5), (8,5.5)
+
 ### Rendering
 - HTML5 Canvas for all graphics
 - Custom isometric projection using row/column game coordinates
@@ -136,12 +184,12 @@ The game uses a **row/column** coordinate system distinct from screen coordinate
 - 2px black stroke on visible edges only
 
 **Layering Strategy:**
-- Within each island: walls drawn first, then top surface (back-to-front)
-- Between islands: render from highest row to lowest row (top of screen to bottom)
-  - Islands with higher row values are drawn first
-  - Their walls extend downward (400px, well below the visible canvas)
-  - Islands closer to the viewer (lower row values) are drawn last
-  - This creates proper occlusion where nearer islands appear in front
+- Islands rendered from highest row to lowest row (back-to-front, top of screen to bottom)
+- For each island, rendering happens in three phases:
+  1. **Base colors**: Walls (brown) and top surface (green)
+  2. **Road**: Grey road surface (1 unit wide)
+  3. **Black outlines**: Visible edges where faces meet
+- This ensures proper depth ordering: nearer islands overlay more distant ones completely (colors, roads, and lines)
 
 **Visual Model:**
 - All island tops exist on the same horizontal plane
@@ -190,13 +238,12 @@ Both debug features are disabled by default and render on a separate layer above
 - ✅ Rectangular islands with configurable width and height
 - ✅ Multiple islands with configurable gaps (row and column)
 - ✅ Proper edge rendering (visible edges only)
-- ✅ Correct render ordering (highest row to lowest row)
+- ✅ Correct render ordering (highest row to lowest row, three-phase per island)
 - ✅ Walls extending off-screen to simulate deep cliffs
 - ✅ Course structure (spans, directions, junctions)
 - ✅ Debug utilities separated into dedicated module
-
-### In Progress
-- 🔄 Road rendering along course spans
+- ✅ Road rendering on islands (straight roads and L-shaped turns)
+- ✅ Systematic road geometry calculation for all junction types
 
 ### Planned
 - ⏳ Vertical scrolling

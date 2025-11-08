@@ -41,26 +41,34 @@ class Game {
         }
 
         // Draw islands from top to bottom (highest row first)
-        // so walls extend downward over islands below
+        // For each island: base colors → road → black lines
+        // This ensures nearer islands properly overlap more distant ones
 
         const wallHeight = 2000; // Extend walls far down off-screen (ground not visible)
 
-        // Island data: [row, col, width, height, debugNumber]
+        // Island data: [row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, debugNumber]
         const islands = [
-            [8, 4, 4, 2, 4],  // Fourth island (topmost) - 4x2
-            [5, 4, 2, 2, 3],  // Third island - 2x2
-            [0, 0, 2, 2, 1],  // First island - 2x2
-            [0, 4, 2, 2, 2],  // Second island - 2x2
+            [8, 4, 4, 2, 'row', 'column', 9, 5, 4],      // Fourth island (topmost) - 4x2, right turn
+            [5, 4, 2, 2, 'row', 'row', 6, 5, 3],         // Third island - 2x2, straight ahead
+            [0, 4, 2, 2, 'column', 'row', 1, 5, 2],      // Second island - 2x2, left turn
+            [0, 0, 2, 2, 'column', 'column', 1, 1, 1],   // First island - 2x2, straight ahead
         ];
 
-        // Draw islands (already sorted from highest row to lowest)
-        islands.forEach(([row, col, width, height, debugNum]) => {
-            this.renderer.drawIsland(row, col, width, height, wallHeight, blockSize);
+        // Render each island completely (colors → road → lines) from farthest to nearest
+        islands.forEach(([row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, debugNum]) => {
+            // Step 1: Draw island base colors (green and brown)
+            const corners = this.renderer.drawIslandColors(row, col, width, height, wallHeight, blockSize);
+
+            // Step 2: Draw road on this island (grey)
+            this.renderer.drawIslandRoad(row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, blockSize);
+
+            // Step 3: Draw island outlines (black lines)
+            this.renderer.drawIslandOutlines(corners);
         });
 
         // Draw debug overlays (on top of everything)
         if (this.showIslandNumbers) {
-            islands.forEach(([row, col, width, height, debugNum]) => {
+            islands.forEach(([row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, debugNum]) => {
                 this.debug.drawIslandNumber(row, col, width, height, debugNum, blockSize);
             });
         }
