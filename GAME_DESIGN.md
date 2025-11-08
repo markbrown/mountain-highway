@@ -88,7 +88,20 @@ The game uses a **row/column** coordinate system distinct from screen coordinate
 - Custom isometric projection using row/column game coordinates
 - Solid color fills for each face
 - 2px black stroke on visible edges only
-- Faces drawn back-to-front for proper layering (walls first, then top)
+
+**Layering Strategy:**
+- Within each island: walls drawn first, then top surface (back-to-front)
+- Between islands: render from highest row to lowest row (top of screen to bottom)
+  - Islands with higher row values are drawn first
+  - Their walls extend downward (400px, well below the visible canvas)
+  - Islands closer to the viewer (lower row values) are drawn last
+  - This creates proper occlusion where nearer islands appear in front
+
+**Visual Model:**
+- All island tops exist on the same horizontal plane
+- The brown walls represent vertical cliffs extending downward to an invisible ground far below
+- The isometric view shows islands "floating" with their cliff sides visible
+- Islands closer to the camera (lower row values) visually overlap those further away
 
 ### Debug Features
 - **Debug grid**: Faint grid lines can be enabled to visualize the game coordinate system
