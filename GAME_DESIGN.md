@@ -64,25 +64,73 @@ This course requires 5 islands total: one at the start, one at the end of each s
 
 ## Controls
 
-- **Mouse button**: Hold to extend bridge
-  - Hold duration determines bridge length
-  - Release to stop extending and allow car to cross
+- **Mouse button**: Click and hold anywhere on screen to grow bridge
+  - Bridge grows at constant rate (2 units per second)
+  - Bridge displays vertically while growing so player can judge length
+  - Release to stop growth and drop bridge to horizontal position
+  - No cancel option - once released, outcome is determined
 
 ## Mechanics
 
+### Game Flow
+1. Car starts at (1,1) facing the direction of the first span
+2. Car travels forward at constant speed along the road
+3. Car stops when front bumper reaches just before the island edge
+4. Player clicks and holds mouse button to grow bridge
+5. Bridge grows vertically from island edge at 2 units/second
+6. Player releases mouse button when bridge appears correct length
+7. Bridge rotates down to horizontal with quick "slamming" animation
+8. Car drives forward onto bridge and continues
+9. If bridge length is incorrect, car eventually falls and game ends
+10. If car reaches end of course, player wins
+
 ### Bridge System
-- Player holds mouse button to extend a bridge
-- Bridge extends from the current island toward the next
-- Visual feedback shows bridge extension (details TBD)
-- Bridge must reach the next island perfectly to cross safely
+
+**Bridge Growth:**
+- Bridge is a rectangle, same width as the road (1 unit)
+- Grows from the exact edge of the island along the road centerline
+- Growth rate: 2 units per second
+- Minimum length: 0 (instant click/release)
+- Maximum length depends on junction type:
+  - **Straight ahead**: Distance to opposite edge of island
+  - **Left/Right turn**: Distance to outside corner
+- Bridge stops growing at maximum length but stays vertical until released
+- While growing: displayed as vertical rectangle (rotated 90°)
+- When released: quick animation rotating down to horizontal
+
+**Bridge Success Conditions:**
+
+For **straight-ahead junctions** (column→column or row→row):
+- Minimum: Bridge must reach near edge of next island
+- Maximum: Bridge must not extend past far edge of next island
+- Acceptable range: [gap distance, gap distance + island depth]
 - Too short: car falls into gap
 - Too long: car drives off far edge of next island
 
+For **turns** (left or right):
+- Minimum: Bridge must reach near edge of next island
+- Maximum: Bridge must not extend past junction point
+- Acceptable range: [gap distance, gap distance + distance to junction]
+- Too short: car falls into gap
+- Too long: bridge extends past junction, car misses turn and drives off opposite edge
+
+**Visual Feedback:**
+- Only the vertical bridge length is shown during growth
+- No measurement indicators or gap distance hints
+- Player must visually judge the correct length
+
+**No Second Chances:**
+- Player cannot cancel bridge once mouse button is pressed
+- Wrong bridge length leads to eventual crash and game over
+- Game over requires restart from beginning of course
+
 ### Car Movement
-- Car moves forward automatically (speed TBD)
+- Car moves forward automatically at constant speed
 - Player does not control steering, only bridge extension
-- Car follows the road path when present
+- Car follows the road path on islands
 - Car follows bridge when crossing gaps
+- Car stops with front bumper just before island edge (waiting for bridge)
+- After bridge drops, car immediately continues forward
 
 ## Technical Details
 
