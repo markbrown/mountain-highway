@@ -354,4 +354,198 @@ class Renderer {
         const corners = this.drawIslandColors(row, col, width, height, wallHeight, blockSize);
         this.drawIslandOutlines(corners);
     }
+
+    /**
+     * Draw a vertical bridge (growing/extended upward)
+     * @param {number} baseRow - row coordinate of bridge base
+     * @param {number} baseCol - column coordinate of bridge base
+     * @param {string} direction - 'row' or 'column' (direction bridge extends in when horizontal)
+     * @param {number} length - length of the bridge in game units
+     * @param {number} blockSize - size of each grid square in pixels
+     */
+    drawVerticalBridge(baseRow, baseCol, direction, length, blockSize) {
+        const bridgeColor = '#444444'; // Same dark gray as road
+        const roadWidth = 1.0; // Bridge is same width as road
+        const halfWidth = roadWidth / 2;
+
+        // Calculate the four corners of the bridge rectangle at the base
+        let corner1, corner2, corner3, corner4;
+
+        if (direction === 'column') {
+            // Bridge extends in column direction when horizontal
+            // Base is perpendicular (in row direction)
+            corner1 = this.gameToScreen(baseRow - halfWidth, baseCol, 0);
+            corner2 = this.gameToScreen(baseRow + halfWidth, baseCol, 0);
+            // Vertical extension: corners move upward by length
+            corner3 = this.gameToScreen(baseRow + halfWidth, baseCol, length);
+            corner4 = this.gameToScreen(baseRow - halfWidth, baseCol, length);
+        } else {
+            // Bridge extends in row direction when horizontal
+            // Base is perpendicular (in column direction)
+            corner1 = this.gameToScreen(baseRow, baseCol - halfWidth, 0);
+            corner2 = this.gameToScreen(baseRow, baseCol + halfWidth, 0);
+            // Vertical extension: corners move upward by length
+            corner3 = this.gameToScreen(baseRow, baseCol + halfWidth, length);
+            corner4 = this.gameToScreen(baseRow, baseCol - halfWidth, length);
+        }
+
+        // Draw the bridge rectangle
+        this.ctx.fillStyle = bridgeColor;
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(corner1.x * blockSize, corner1.y * blockSize);
+        this.ctx.lineTo(corner2.x * blockSize, corner2.y * blockSize);
+        this.ctx.lineTo(corner3.x * blockSize, corner3.y * blockSize);
+        this.ctx.lineTo(corner4.x * blockSize, corner4.y * blockSize);
+        this.ctx.closePath();
+        this.ctx.fill();
+    }
+
+    /**
+     * Draw a rotating bridge (transitioning from vertical to horizontal)
+     * @param {number} baseRow - row coordinate of bridge base
+     * @param {number} baseCol - column coordinate of bridge base
+     * @param {string} direction - 'row' or 'column' (direction bridge extends in when horizontal)
+     * @param {number} length - length of the bridge in game units
+     * @param {number} rotation - rotation angle in radians (0 = vertical, Math.PI/2 = horizontal)
+     * @param {number} blockSize - size of each grid square in pixels
+     */
+    drawRotatingBridge(baseRow, baseCol, direction, length, rotation, blockSize) {
+        const bridgeColor = '#444444';
+        const roadWidth = 1.0;
+        const halfWidth = roadWidth / 2;
+
+        // Calculate the direction vector for when horizontal
+        let dirX, dirY;
+        if (direction === 'column') {
+            const basePoint = this.gameToScreen(baseRow, baseCol, 0);
+            const endPoint = this.gameToScreen(baseRow, baseCol + 1, 0);
+            dirX = (endPoint.x - basePoint.x) * blockSize;
+            dirY = (endPoint.y - basePoint.y) * blockSize;
+        } else {
+            const basePoint = this.gameToScreen(baseRow, baseCol, 0);
+            const endPoint = this.gameToScreen(baseRow + 1, baseCol, 0);
+            dirX = (endPoint.x - basePoint.x) * blockSize;
+            dirY = (endPoint.y - basePoint.y) * blockSize;
+        }
+
+        // Normalize direction
+        const dirLength = Math.sqrt(dirX * dirX + dirY * dirY);
+        dirX /= dirLength;
+        dirY /= dirLength;
+
+        // Perpendicular vector for width
+        const perpX = -dirY;
+        const perpY = dirX;
+
+        // Calculate the two base edge corners (these stay fixed during rotation)
+        let baseCorner1, baseCorner2;
+        if (direction === 'column') {
+            baseCorner1 = this.gameToScreen(baseRow - halfWidth, baseCol, 0);
+            baseCorner2 = this.gameToScreen(baseRow + halfWidth, baseCol, 0);
+        } else {
+            baseCorner1 = this.gameToScreen(baseRow, baseCol - halfWidth, 0);
+            baseCorner2 = this.gameToScreen(baseRow, baseCol + halfWidth, 0);
+        }
+
+        const base1X = baseCorner1.x * blockSize;
+        const base1Y = baseCorner1.y * blockSize;
+        const base2X = baseCorner2.x * blockSize;
+        const base2Y = baseCorner2.y * blockSize;
+
+        // Calculate the far edge corners (these rotate around the base edge)
+        // When vertical (rotation = 0): bridge extends upward (negative Y in screen space)
+        // When horizontal (rotation = π/2): bridge extends in direction vector
+        const verticalComponent = length * blockSize * Math.cos(rotation);
+        const horizontalComponent = length * blockSize * Math.sin(rotation);
+
+        // Far corners pivot from base corners
+        const far1X = base1X + dirX * horizontalComponent;
+        const far1Y = base1Y + dirY * horizontalComponent - verticalComponent;
+
+        const far2X = base2X + dirX * horizontalComponent;
+        const far2Y = base2Y + dirY * horizontalComponent - verticalComponent;
+
+        this.ctx.fillStyle = bridgeColor;
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(base1X, base1Y);
+        this.ctx.lineTo(base2X, base2Y);
+        this.ctx.lineTo(far2X, far2Y);
+        this.ctx.lineTo(far1X, far1Y);
+        this.ctx.closePath();
+        this.ctx.fill();
+    }
+
+    /**
+     * Draw a horizontal bridge
+     * @param {number} baseRow - row coordinate of bridge base
+     * @param {number} baseCol - column coordinate of bridge base
+     * @param {string} direction - 'row' or 'column' (direction bridge extends)
+     * @param {number} length - length of the bridge in game units
+     * @param {number} blockSize - size of each grid square in pixels
+     */
+    drawHorizontalBridge(baseRow, baseCol, direction, length, blockSize) {
+        const bridgeColor = '#444444';
+        const roadWidth = 1.0;
+        const halfWidth = roadWidth / 2;
+
+        // Calculate corners based on direction
+        let corner1, corner2, corner3, corner4;
+
+        if (direction === 'column') {
+            // Bridge extends in column direction
+            corner1 = this.gameToScreen(baseRow - halfWidth, baseCol, 0);
+            corner2 = this.gameToScreen(baseRow + halfWidth, baseCol, 0);
+            corner3 = this.gameToScreen(baseRow + halfWidth, baseCol + length, 0);
+            corner4 = this.gameToScreen(baseRow - halfWidth, baseCol + length, 0);
+        } else {
+            // Bridge extends in row direction
+            corner1 = this.gameToScreen(baseRow, baseCol - halfWidth, 0);
+            corner2 = this.gameToScreen(baseRow, baseCol + halfWidth, 0);
+            corner3 = this.gameToScreen(baseRow + length, baseCol + halfWidth, 0);
+            corner4 = this.gameToScreen(baseRow + length, baseCol - halfWidth, 0);
+        }
+
+        this.ctx.fillStyle = bridgeColor;
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(corner1.x * blockSize, corner1.y * blockSize);
+        this.ctx.lineTo(corner2.x * blockSize, corner2.y * blockSize);
+        this.ctx.lineTo(corner3.x * blockSize, corner3.y * blockSize);
+        this.ctx.lineTo(corner4.x * blockSize, corner4.y * blockSize);
+        this.ctx.closePath();
+        this.ctx.fill();
+    }
+
+    /**
+     * Draw the black edge line at the bridge attachment point
+     * This is used to redraw the edge after drawing a vertical/rotating bridge
+     * @param {number} baseRow - row coordinate of bridge base
+     * @param {number} baseCol - column coordinate of bridge base
+     * @param {string} direction - 'row' or 'column' (direction bridge extends)
+     * @param {number} blockSize - size of each grid square in pixels
+     */
+    drawBridgeEdgeLine(baseRow, baseCol, direction, blockSize) {
+        const roadWidth = 1.0;
+        const halfWidth = roadWidth / 2;
+
+        let corner1, corner2;
+        if (direction === 'column') {
+            // Bridge extends in column direction, edge is perpendicular (in row direction)
+            corner1 = this.gameToScreen(baseRow - halfWidth, baseCol, 0);
+            corner2 = this.gameToScreen(baseRow + halfWidth, baseCol, 0);
+        } else {
+            // Bridge extends in row direction, edge is perpendicular (in column direction)
+            corner1 = this.gameToScreen(baseRow, baseCol - halfWidth, 0);
+            corner2 = this.gameToScreen(baseRow, baseCol + halfWidth, 0);
+        }
+
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(corner1.x * blockSize, corner1.y * blockSize);
+        this.ctx.lineTo(corner2.x * blockSize, corner2.y * blockSize);
+        this.ctx.stroke();
+    }
 }
