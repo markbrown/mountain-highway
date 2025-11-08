@@ -16,39 +16,6 @@ class Renderer {
     }
 
     /**
-     * Draw debug grid lines to visualize the game coordinate system
-     * @param {number} minRow - minimum row to draw
-     * @param {number} maxRow - maximum row to draw
-     * @param {number} minCol - minimum column to draw
-     * @param {number} maxCol - maximum column to draw
-     * @param {number} blockSize - size of each grid square
-     */
-    drawDebugGrid(minRow, maxRow, minCol, maxCol, blockSize) {
-        this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)'; // Faint black lines
-        this.ctx.lineWidth = 1;
-
-        // Draw vertical lines (constant column, varying row)
-        for (let col = minCol; col <= maxCol; col++) {
-            this.ctx.beginPath();
-            const startPoint = this.gameToScreen(minRow, col, 0);
-            const endPoint = this.gameToScreen(maxRow, col, 0);
-            this.ctx.moveTo(startPoint.x * blockSize, startPoint.y * blockSize);
-            this.ctx.lineTo(endPoint.x * blockSize, endPoint.y * blockSize);
-            this.ctx.stroke();
-        }
-
-        // Draw horizontal lines (constant row, varying column)
-        for (let row = minRow; row <= maxRow; row++) {
-            this.ctx.beginPath();
-            const startPoint = this.gameToScreen(row, minCol, 0);
-            const endPoint = this.gameToScreen(row, maxCol, 0);
-            this.ctx.moveTo(startPoint.x * blockSize, startPoint.y * blockSize);
-            this.ctx.lineTo(endPoint.x * blockSize, endPoint.y * blockSize);
-            this.ctx.stroke();
-        }
-    }
-
-    /**
      * Convert game grid coordinates to screen coordinates
      * Game coordinates:
      *   - row: increases upward on screen

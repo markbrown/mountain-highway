@@ -55,6 +55,13 @@ Mountain Highway is a minimalist arcade game where players drive a car along a t
 
 ## Technical Details
 
+### File Structure
+- `index.html` - Main HTML page
+- `style.css` - Styling for canvas and page layout
+- `js/renderer.js` - Core rendering engine (islands, isometric projection)
+- `js/game.js` - Game loop, island data, and main logic
+- `js/debug.js` - Debug utilities (grid, island numbering)
+
 ### Game Coordinate System
 The game uses a **row/column** coordinate system distinct from screen coordinates:
 
@@ -116,11 +123,23 @@ The game uses a **row/column** coordinate system distinct from screen coordinate
   - Both walls extend straight down (2000px) parallel to the screen Y-axis
 
 ### Debug Features
-- **Debug grid**: Faint grid lines can be enabled to visualize the game coordinate system
-  - Grid lines show row and column boundaries
-  - Rendered at 15% opacity to not interfere with gameplay visuals
-  - Toggle by uncommenting `drawDebugGrid()` call in game.js
-  - Useful for positioning islands, roads, and other game elements
+Debug utilities are separated into `js/debug.js` and render as overlays on top of the game graphics.
+
+**Debug Grid:**
+- Faint grid lines to visualize the game coordinate system
+- Shows row and column boundaries
+- Rendered at 15% opacity
+- Toggle via `showDebugGrid` flag in game.js
+- Useful for positioning islands, roads, and other game elements
+
+**Island Numbering:**
+- White semi-transparent numbers (80% opacity) displayed at the center of each island
+- Numbers start from 1 for the first island added
+- Rendered in bold 24px Arial font
+- Toggle via `showIslandNumbers` flag in game.js
+- Useful for identifying islands during development and debugging
+
+Both debug features are disabled by default and render on a separate layer above all game graphics.
 
 ## Future Features to Consider
 

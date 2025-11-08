@@ -4,6 +4,11 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.renderer = new Renderer(this.canvas);
+        this.debug = new DebugRenderer(this.renderer);
+
+        // Debug options
+        this.showDebugGrid = false;
+        this.showIslandNumbers = false;
 
         this.init();
     }
@@ -23,59 +28,34 @@ class Game {
         this.renderer.ctx.translate(400, 500); // Offset to center islands on screen
 
         // Draw debug grid (optional - for development)
-        // Uncomment to show grid lines:
-        // this.renderer.drawDebugGrid(-2, 10, -2, 10, blockSize);
+        if (this.showDebugGrid) {
+            this.debug.drawGrid(-2, 10, -2, 10, blockSize);
+        }
 
         // Draw islands from top to bottom (highest row first)
         // so walls extend downward over islands below
 
         const wallHeight = 2000; // Extend walls far down off-screen (ground not visible)
 
-        // Draw fourth island (topmost) - 4 columns x 2 rows
-        // Near corner at game grid (row=8, col=4)
-        // Third island ends at row=7, gap of 1 row, fourth island starts at row=8
-        this.renderer.drawIsland(
-            8,    // row
-            4,    // col (same as third island)
-            4,    // width (4 columns)
-            2,    // height (2 rows)
-            wallHeight,
-            blockSize
-        );
+        // Island data: [row, col, width, height, debugNumber]
+        const islands = [
+            [8, 4, 4, 2, 4],  // Fourth island (topmost) - 4x2
+            [5, 4, 2, 2, 3],  // Third island - 2x2
+            [0, 0, 2, 2, 1],  // First island - 2x2
+            [0, 4, 2, 2, 2],  // Second island - 2x2
+        ];
 
-        // Draw third island
-        // Near corner at game grid (row=5, col=4), extends to (row=7, col=6)
-        this.renderer.drawIsland(
-            5,    // row
-            4,    // col
-            2,    // width (2 columns)
-            2,    // height (2 rows)
-            wallHeight,
-            blockSize
-        );
+        // Draw islands (already sorted from highest row to lowest)
+        islands.forEach(([row, col, width, height, debugNum]) => {
+            this.renderer.drawIsland(row, col, width, height, wallHeight, blockSize);
+        });
 
-        // Draw first island (row=0, col=0)
-        // Near corner at game grid (row=0, col=0), extends to (row=2, col=2)
-        this.renderer.drawIsland(
-            0,    // row
-            0,    // col
-            2,    // width (2 columns)
-            2,    // height (2 rows)
-            wallHeight,
-            blockSize
-        );
-
-        // Draw second island (row=0, col=4)
-        // Near corner at game grid (row=0, col=4), extends to (row=2, col=6)
-        // Same row as first island, but 4 columns to the right (2 for island + 2 for gap)
-        this.renderer.drawIsland(
-            0,    // row (same as first island)
-            4,    // col (2 for first island + 2 for gap = 4)
-            2,    // width (2 columns)
-            2,    // height (2 rows)
-            wallHeight,
-            blockSize
-        );
+        // Draw debug overlays (on top of everything)
+        if (this.showIslandNumbers) {
+            islands.forEach(([row, col, width, height, debugNum]) => {
+                this.debug.drawIslandNumber(row, col, width, height, debugNum, blockSize);
+            });
+        }
 
         this.renderer.ctx.restore();
     }
