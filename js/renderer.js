@@ -16,12 +16,17 @@ class Renderer {
     }
 
     /**
-     * Convert isometric coordinates to screen coordinates
-     * In isometric view, x goes right-down, y goes left-down
+     * Convert game grid coordinates to screen coordinates
+     * Game coordinates:
+     *   - row: increases upward on screen
+     *   - col: increases rightward on screen
+     * Screen coordinates:
+     *   - increasing col -> increase X, decrease Y (move right)
+     *   - increasing row -> decrease X, decrease Y (move up)
      */
-    isoToScreen(isoX, isoY, isoZ = 0) {
-        const screenX = (isoX - isoY);
-        const screenY = (isoX + isoY) / 2 - isoZ;
+    gameToScreen(row, col, height = 0) {
+        const screenX = col - row;
+        const screenY = -(col + row) / 2 - height;
         return { x: screenX, y: screenY };
     }
 
@@ -85,82 +90,91 @@ class Renderer {
 
     /**
      * Draw an island - a flat top surface with vertical walls extending downward
-     * @param {number} gridX - grid X position (not used yet)
-     * @param {number} gridY - grid Y position (not used yet)
-     * @param {number} gridSize - size of the top surface in grid units
-     * @param {number} height - how far the walls extend downward
-     * @param {number} offsetX - screen offset X
-     * @param {number} offsetY - screen offset Y
+     * @param {number} row - game grid row (near corner)
+     * @param {number} col - game grid column (near corner)
+     * @param {number} size - size of the island in grid units (e.g., 2 for 2x2)
+     * @param {number} wallHeight - how far the walls extend downward (pixels)
+     * @param {number} blockSize - size of each grid square in pixels
      */
-    drawIsland(gridX, gridY, gridSize, height, offsetX, offsetY) {
-        const blockSize = 50; // Size of each isometric block
-        const totalSize = gridSize * blockSize;
+    drawIsland(row, col, size, wallHeight, blockSize) {
+        // Calculate the four corners of the top surface in game coordinates
+        // In isometric view, these form a diamond:
+        //   - Bottom point (near): (row, col)
+        //   - Right point: (row, col+size)
+        //   - Top point (far): (row+size, col+size)
+        //   - Left point: (row+size, col)
+        const bottomPoint = this.gameToScreen(row, col, 0);
+        const rightPoint = this.gameToScreen(row, col + size, 0);
+        const topPoint = this.gameToScreen(row + size, col + size, 0);
+        const leftPoint = this.gameToScreen(row + size, col, 0);
 
-        // Calculate the four corners of the top surface in isometric coordinates
-        const topLeft = this.isoToScreen(offsetX, offsetY, 0);
-        const topRight = this.isoToScreen(offsetX + totalSize, offsetY, 0);
-        const bottomRight = this.isoToScreen(offsetX + totalSize, offsetY + totalSize, 0);
-        const bottomLeft = this.isoToScreen(offsetX, offsetY + totalSize, 0);
+        // Scale corners by blockSize
+        const bottom = { x: bottomPoint.x * blockSize, y: bottomPoint.y * blockSize };
+        const right = { x: rightPoint.x * blockSize, y: rightPoint.y * blockSize };
+        const top = { x: topPoint.x * blockSize, y: topPoint.y * blockSize };
+        const left = { x: leftPoint.x * blockSize, y: leftPoint.y * blockSize };
 
-        // 1. Draw the green top surface as a single face
+        // Draw the walls first (back to front for proper layering)
+
+        // 1. Draw the left wall (darker brown)
+        this.ctx.fillStyle = '#6B3410';
         this.ctx.beginPath();
-        this.ctx.moveTo(topLeft.x, topLeft.y);
-        this.ctx.lineTo(topRight.x, topRight.y);
-        this.ctx.lineTo(bottomRight.x, bottomRight.y);
-        this.ctx.lineTo(bottomLeft.x, bottomLeft.y);
+        this.ctx.moveTo(left.x, left.y);
+        this.ctx.lineTo(left.x, left.y + wallHeight);
+        this.ctx.lineTo(top.x, top.y + wallHeight);
+        this.ctx.lineTo(top.x, top.y);
         this.ctx.closePath();
-        this.ctx.fillStyle = '#4CAF50'; // Green grass
         this.ctx.fill();
 
-        // 2. Draw the right wall as a single face
+        // 2. Draw the right wall (lighter brown)
+        this.ctx.fillStyle = '#8B4513';
         this.ctx.beginPath();
-        this.ctx.moveTo(topRight.x, topRight.y);
-        this.ctx.lineTo(topRight.x, topRight.y + height);
-        this.ctx.lineTo(bottomRight.x, bottomRight.y + height);
-        this.ctx.lineTo(bottomRight.x, bottomRight.y);
+        this.ctx.moveTo(right.x, right.y);
+        this.ctx.lineTo(right.x, right.y + wallHeight);
+        this.ctx.lineTo(top.x, top.y + wallHeight);
+        this.ctx.lineTo(top.x, top.y);
         this.ctx.closePath();
-        this.ctx.fillStyle = '#8B4513'; // Lighter brown
         this.ctx.fill();
 
-        // 3. Draw the left wall as a single face
+        // 3. Draw the green top surface last (on top of everything)
+        this.ctx.fillStyle = '#4CAF50';
         this.ctx.beginPath();
-        this.ctx.moveTo(bottomLeft.x, bottomLeft.y);
-        this.ctx.lineTo(bottomLeft.x, bottomLeft.y + height);
-        this.ctx.lineTo(bottomRight.x, bottomRight.y + height);
-        this.ctx.lineTo(bottomRight.x, bottomRight.y);
+        this.ctx.moveTo(bottom.x, bottom.y);
+        this.ctx.lineTo(right.x, right.y);
+        this.ctx.lineTo(top.x, top.y);
+        this.ctx.lineTo(left.x, left.y);
         this.ctx.closePath();
-        this.ctx.fillStyle = '#6B3410'; // Darker brown
         this.ctx.fill();
 
-        // 4. Draw the outline where faces meet
+        // Draw the visible outlines where faces meet
         this.ctx.strokeStyle = '#000';
         this.ctx.lineWidth = 2;
 
         // Outline of top surface
         this.ctx.beginPath();
-        this.ctx.moveTo(topLeft.x, topLeft.y);
-        this.ctx.lineTo(topRight.x, topRight.y);
-        this.ctx.lineTo(bottomRight.x, bottomRight.y);
-        this.ctx.lineTo(bottomLeft.x, bottomLeft.y);
+        this.ctx.moveTo(bottom.x, bottom.y);
+        this.ctx.lineTo(right.x, right.y);
+        this.ctx.lineTo(top.x, top.y);
+        this.ctx.lineTo(left.x, left.y);
         this.ctx.closePath();
         this.ctx.stroke();
 
         // Edge between top and right wall
         this.ctx.beginPath();
-        this.ctx.moveTo(topRight.x, topRight.y);
-        this.ctx.lineTo(topRight.x, topRight.y + height);
+        this.ctx.moveTo(right.x, right.y);
+        this.ctx.lineTo(right.x, right.y + wallHeight);
         this.ctx.stroke();
 
         // Edge between top and left wall
         this.ctx.beginPath();
-        this.ctx.moveTo(bottomLeft.x, bottomLeft.y);
-        this.ctx.lineTo(bottomLeft.x, bottomLeft.y + height);
+        this.ctx.moveTo(left.x, left.y);
+        this.ctx.lineTo(left.x, left.y + wallHeight);
         this.ctx.stroke();
 
-        // Edge between right and left walls
+        // Front edge where the two visible walls meet
         this.ctx.beginPath();
-        this.ctx.moveTo(bottomRight.x, bottomRight.y);
-        this.ctx.lineTo(bottomRight.x, bottomRight.y + height);
+        this.ctx.moveTo(bottom.x, bottom.y);
+        this.ctx.lineTo(bottom.x, bottom.y + wallHeight);
         this.ctx.stroke();
     }
 }

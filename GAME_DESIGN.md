@@ -55,15 +55,40 @@ Mountain Highway is a minimalist arcade game where players drive a car along a t
 
 ## Technical Details
 
-### Grid System
-- Islands aligned to isometric grid
-- Base unit: 50px blocks
-- Islands are square, typically 2x2 grid units (100px)
+### Game Coordinate System
+The game uses a **row/column** coordinate system distinct from screen coordinates:
+
+- **Row**: Increases upward on screen (toward the top of the canvas)
+- **Column**: Increases rightward on screen (toward the right side of the canvas)
+- **Grid unit**: 50px base block size
+
+**Coordinate mapping to screen (isometric projection):**
+- `screenX = (col - row) * blockSize`
+- `screenY = -(col + row) / 2 * blockSize`
+
+**Example:**
+- Island at (row=0, col=0) with size=2 occupies game coordinates from (0,0) to (2,2)
+- Island at (row=0, col=4) with size=2 occupies game coordinates from (0,4) to (2,6)
+- A 2-unit gap between them means columns 2-3 are empty
+
+### Island Structure
+- Islands are square (typically 2x2 grid units)
+- Each island consists of three visible faces:
+  - **Top face**: Green grass (#4CAF50) - horizontal diamond shape
+  - **Right wall**: Light brown dirt (#8B4513) - extends downward
+  - **Left wall**: Dark brown dirt (#6B3410) - extends downward
+- Walls typically extend 400px downward (off-screen)
+- Black outlines drawn only on visible edges:
+  - Top surface perimeter
+  - Front vertical edge (where the two walls meet at the near corner)
+  - Two side vertical edges (where top meets each wall)
 
 ### Rendering
 - HTML5 Canvas for all graphics
-- Isometric projection system
-- Solid faces with outlines only at edges (no interior grid lines)
+- Custom isometric projection using row/column game coordinates
+- Solid color fills for each face
+- 2px black stroke on visible edges only
+- Faces drawn back-to-front for proper layering (walls first, then top)
 
 ## Future Features to Consider
 
@@ -77,15 +102,16 @@ Mountain Highway is a minimalist arcade game where players drive a car along a t
 ## Development Status
 
 ### Completed
-- ✅ Isometric rendering system
-- ✅ Single island rendering with proper 3D appearance
+- ✅ Isometric rendering system with row/column coordinate mapping
+- ✅ Island rendering with proper 3D appearance (top + two visible walls)
+- ✅ Multiple islands with configurable gaps
+- ✅ Proper edge rendering (visible edges only)
 
 ### In Progress
-- 🔄 Multiple island layout
+- 🔄 Road rendering on islands
 
 ### Planned
 - ⏳ Vertical scrolling
-- ⏳ Road rendering on islands
 - ⏳ Car sprite and movement
 - ⏳ Bridge extension mechanic
 - ⏳ Mouse input handling
