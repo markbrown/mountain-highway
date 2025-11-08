@@ -90,6 +90,13 @@ The game uses a **row/column** coordinate system distinct from screen coordinate
 - 2px black stroke on visible edges only
 - Faces drawn back-to-front for proper layering (walls first, then top)
 
+### Debug Features
+- **Debug grid**: Faint grid lines can be enabled to visualize the game coordinate system
+  - Grid lines show row and column boundaries
+  - Rendered at 15% opacity to not interfere with gameplay visuals
+  - Toggle by uncommenting `drawDebugGrid()` call in game.js
+  - Useful for positioning islands, roads, and other game elements
+
 ## Future Features to Consider
 
 - **Sound Effects**: Engine sounds, bridge extension, crashes

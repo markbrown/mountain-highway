@@ -22,6 +22,10 @@ class Game {
         this.renderer.ctx.save();
         this.renderer.ctx.translate(400, 500); // Offset to center islands on screen
 
+        // Draw debug grid (optional - for development)
+        // Uncomment to show grid lines:
+        // this.renderer.drawDebugGrid(-2, 10, -2, 10, blockSize);
+
         // Draw first island
         // Near corner at game grid (row=0, col=0), extends to (row=2, col=2)
         this.renderer.drawIsland(
