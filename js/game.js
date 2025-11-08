@@ -7,7 +7,7 @@ class Game {
         this.debug = new DebugRenderer(this.renderer);
 
         // Debug options
-        this.showDebugGrid = false;
+        this.showDebugGrid = true;
         this.showIslandNumbers = false;
 
         // Create the example course
@@ -174,7 +174,7 @@ class Game {
 
         // Draw debug grid (optional - for development)
         if (this.showDebugGrid) {
-            this.debug.drawGrid(-2, 10, -2, 10, blockSize);
+            this.debug.drawGrid(0, 16, 0, 16, blockSize);
         }
 
         // Draw islands from top to bottom (highest row first)

@@ -15,11 +15,17 @@ class DebugRenderer {
      * @param {number} blockSize - size of each grid square
      */
     drawGrid(minRow, maxRow, minCol, maxCol, blockSize) {
-        this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)'; // Faint black lines
-        this.ctx.lineWidth = 1;
-
         // Draw vertical lines (constant column, varying row)
         for (let col = minCol; col <= maxCol; col++) {
+            // Every 4th line gets a different color and is thicker
+            if (col % 4 === 0) {
+                this.ctx.strokeStyle = 'rgba(0, 0, 255, 0.25)'; // Blue for every 4th line
+                this.ctx.lineWidth = 2;
+            } else {
+                this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)'; // Faint black for regular lines
+                this.ctx.lineWidth = 1;
+            }
+
             this.ctx.beginPath();
             const startPoint = this.renderer.gameToScreen(minRow, col, 0);
             const endPoint = this.renderer.gameToScreen(maxRow, col, 0);
@@ -30,6 +36,15 @@ class DebugRenderer {
 
         // Draw horizontal lines (constant row, varying column)
         for (let row = minRow; row <= maxRow; row++) {
+            // Every 4th line gets a different color and is thicker
+            if (row % 4 === 0) {
+                this.ctx.strokeStyle = 'rgba(0, 0, 255, 0.25)'; // Blue for every 4th line
+                this.ctx.lineWidth = 2;
+            } else {
+                this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)'; // Faint black for regular lines
+                this.ctx.lineWidth = 1;
+            }
+
             this.ctx.beginPath();
             const startPoint = this.renderer.gameToScreen(row, minCol, 0);
             const endPoint = this.renderer.gameToScreen(row, maxCol, 0);
