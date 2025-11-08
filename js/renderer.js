@@ -89,7 +89,7 @@ class Renderer {
     }
 
     /**
-     * Draw a road on an island following the systematic calculation approach
+     * Draw a road on an island using rectangle-based approach
      * @param {number} islandRow - island near corner row
      * @param {number} islandCol - island near corner column
      * @param {number} islandWidth - island width in columns
@@ -102,87 +102,37 @@ class Renderer {
      */
     drawIslandRoad(islandRow, islandCol, islandWidth, islandHeight,
                    entryDirection, exitDirection, junctionRow, junctionCol, blockSize) {
-        const roadColor = '#444444';
-        const halfWidth = 0.5;
+        // Determine entry and exit edges
+        const entryEdge = entryDirection === 'column' ? islandCol : islandRow;
+        const exitEdge = exitDirection === 'column' ? islandCol + islandWidth : islandRow + islandHeight;
 
-        // Step 1: Determine start point (where course enters island)
-        let startPoint, startSide1, startSide2;
-        if (entryDirection === 'column') {
-            // Course enters in column direction - start at near corner column
-            startPoint = islandCol;
-            // Step 2: Sides perpendicular to column direction (in row direction)
-            startSide1 = junctionRow - halfWidth;
-            startSide2 = junctionRow + halfWidth;
-        } else {
-            // Course enters in row direction - start at near corner row
-            startPoint = islandRow;
-            // Step 2: Sides perpendicular to row direction (in column direction)
-            startSide1 = junctionCol - halfWidth;
-            startSide2 = junctionCol + halfWidth;
-        }
-
-        // Step 3: Determine end point (where course leaves island)
-        let endPoint, endSide1, endSide2;
-        if (exitDirection === 'column') {
-            // Course exits in column direction - use far corner column
-            endPoint = islandCol + islandWidth;
-            // Step 4: Sides perpendicular to column direction (in row direction)
-            endSide1 = junctionRow - halfWidth;
-            endSide2 = junctionRow + halfWidth;
-        } else {
-            // Course exits in row direction - use far corner row
-            endPoint = islandRow + islandHeight;
-            // Step 4: Sides perpendicular to row direction (in column direction)
-            endSide1 = junctionCol - halfWidth;
-            endSide2 = junctionCol + halfWidth;
-        }
-
-        // Step 5: Draw the road based on whether it's straight or a turn
         if (entryDirection === exitDirection) {
-            // Straight road
+            // Case 1: Straight ahead - single rectangle from entry edge to exit edge
             this.drawRoad(
-                entryDirection === 'row' ? startPoint : junctionRow,
-                entryDirection === 'column' ? startPoint : junctionCol,
-                exitDirection === 'row' ? endPoint : junctionRow,
-                exitDirection === 'column' ? endPoint : junctionCol,
+                entryDirection === 'row' ? entryEdge : junctionRow,
+                entryDirection === 'column' ? entryEdge : junctionCol,
+                exitDirection === 'row' ? exitEdge : junctionRow,
+                exitDirection === 'column' ? exitEdge : junctionCol,
                 blockSize
             );
         } else {
-            // L-shaped road (turn)
-            let corners;
-            if (entryDirection === 'column') {
-                // Entry in column direction, exit in row direction (left turn)
-                corners = [
-                    this.gameToScreen(startSide1, startPoint, 0),
-                    this.gameToScreen(startSide1, endSide2, 0),
-                    this.gameToScreen(endPoint, endSide2, 0),
-                    this.gameToScreen(endPoint, endSide1, 0),
-                    this.gameToScreen(startSide2, endSide1, 0),
-                    this.gameToScreen(startSide2, startPoint, 0)
-                ];
-            } else {
-                // Entry in row direction, exit in column direction (right turn)
-                // startSide1/2 are column sides, endSide1/2 are row sides
-                // Outside corner: startSide1 (col-0.5) with endSide2 (row+0.5)
-                // Inside corner: startSide2 (col+0.5) with endSide1 (row-0.5)
-                corners = [
-                    this.gameToScreen(startPoint, startSide1, 0),
-                    this.gameToScreen(endSide2, startSide1, 0),
-                    this.gameToScreen(endSide2, endPoint, 0),
-                    this.gameToScreen(endSide1, endPoint, 0),
-                    this.gameToScreen(endSide1, startSide2, 0),
-                    this.gameToScreen(startPoint, startSide2, 0)
-                ];
-            }
+            // Case 2: Turn to bridge - two overlapping rectangles forming L-shape
+            // Rectangle 1: Entry edge to junction+0.5 (in entry direction)
+            // Rectangle 2: Junction to exit edge (in exit direction)
 
-            this.ctx.fillStyle = roadColor;
-            this.ctx.beginPath();
-            this.ctx.moveTo(corners[0].x * blockSize, corners[0].y * blockSize);
-            for (let i = 1; i < corners.length; i++) {
-                this.ctx.lineTo(corners[i].x * blockSize, corners[i].y * blockSize);
+            if (entryDirection === 'column') {
+                // Entry in column direction, exit in row direction
+                // Rectangle 1: from entry edge to junction+0.5 in column direction
+                this.drawRoad(junctionRow, entryEdge, junctionRow, junctionCol + 0.5, blockSize);
+                // Rectangle 2: from junction to exit edge in row direction
+                this.drawRoad(junctionRow, junctionCol, exitEdge, junctionCol, blockSize);
+            } else {
+                // Entry in row direction, exit in column direction
+                // Rectangle 1: from entry edge to junction+0.5 in row direction
+                this.drawRoad(entryEdge, junctionCol, junctionRow + 0.5, junctionCol, blockSize);
+                // Rectangle 2: from junction to exit edge in column direction
+                this.drawRoad(junctionRow, junctionCol, junctionRow, exitEdge, blockSize);
             }
-            this.ctx.closePath();
-            this.ctx.fill();
         }
     }
 

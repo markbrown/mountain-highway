@@ -207,37 +207,40 @@ Roads are rendered on island surfaces to show the course path. Each road is 1 un
 - For a course in column direction at row R: road extends from (R-0.5) to (R+0.5)
 
 **Road Rendering Strategy:**
-Roads are composed of one or more overlapping rectangles, depending on the island's junction configuration.
+All roads are rendered using overlapping rectangles. The unified rectangle-based approach handles all cases systematically:
 
-**Case 1: Straight-ahead junction (same direction in and out)**
+**Case 1: No junction (straight-ahead)**
 - Single rectangle from entry edge to exit edge
-- Example: Island 3 with row→row junction
-- Rectangle runs entire length of island in one direction
+- Entry and exit directions are the same
+- Example: Island 3 with row→row
+  - Single rectangle: row 5 to row 7, centered at column 5
 
-**Case 2: Turn to bridge (one turn, followed by bridge)**
+**Case 2: One junction (turn to bridge)**
 - Two overlapping rectangles forming an L-shape
+- Entry and exit directions differ
 - Rectangle 1: Entry edge to junction+0.5 (in entry direction)
-  - Extends 0.5 units past junction to account for width of next section
+  - Extends 0.5 units past junction for proper overlap
 - Rectangle 2: Junction to exit edge (in exit direction)
-- Example: Island 2 with column→row left turn
-  - Rect 1: Row 1 ± 0.5, column 4 to 5.5 (column direction)
-  - Rect 2: Column 5 ± 0.5, row 1 to 2 (row direction)
+- Example: Island 2 with column→row
+  - Rect 1: column 4 to 5.5, centered at row 1 (column direction)
+  - Rect 2: row 1 to 2, centered at column 5 (row direction)
 
-**Case 3: Turn to turn (two turns on same island, no bridge between)**
+**Case 3: Two junctions (turn to turn)**
 - Three overlapping rectangles forming an S or Z shape
+- Both junctions occur on the same island (no bridge between)
 - Rectangle 1: Entry edge to junction1+0.5 (in entry direction)
-  - Extends 0.5 units past first junction
 - Rectangle 2: Junction1 to junction2+0.5 (in middle direction)
-  - Extends 0.5 units past second junction
 - Rectangle 3: Junction2 to exit edge (in exit direction)
-  - Ends at island edge (followed by bridge)
-- Example: Island 4 with row→column→row (right turn then left turn)
-  - Rect 1: Column 5 ± 0.5, row 8 to 9.5 (row direction)
-  - Rect 2: Row 9 ± 0.5, column 5 to 7.5 (column direction)
-  - Rect 3: Column 7 ± 0.5, row 9 to 10 (row direction)
+- Example: Island 4 with row→column→row
+  - Rect 1: row 8 to 9.5, centered at column 5 (row direction)
+  - Rect 2: column 5 to 7.5, centered at row 9 (column direction)
+  - Rect 3: row 9 to 10, centered at column 7 (row direction)
 
-**Key Principle:**
-When a road segment leads directly to another junction (without crossing a bridge), it must extend 0.5 units past the junction point. This accounts for the width of the road in the perpendicular direction and ensures proper visual overlap at corners.
+**Implementation:**
+- `drawIslandRoad()` handles cases 1 and 2 (0 or 1 junction)
+- `drawComplexRoadTwoTurns()` handles case 3 (2 junctions)
+- Both methods use `drawRoad()` primitive to draw individual rectangles
+- The +0.5 extension ensures seamless visual overlap at corners when leading to another junction
 
 ### Rendering
 - HTML5 Canvas for all graphics
@@ -282,6 +285,36 @@ Debug utilities are separated into `js/debug.js` and render as overlays on top o
 - Useful for identifying islands during development and debugging
 
 Both debug features are disabled by default and render on a separate layer above all game graphics.
+
+## Terminology
+
+**Core Concepts:**
+- **Junction**: The coordinate position (row, col) where one span ends and the next begins. Junctions are the key to systematic road rendering.
+- **Turn**: Describes the change in direction at a junction (left, right, or straight ahead). Useful for discussion but not required in code.
+- **Edge**: The edge of an island where the road enters or leaves.
+- **Base**: An edge that has a bridge attached. This occurs at exit edges (except for the final island).
+
+**Usage in Code:**
+- Focus on junction coordinates rather than turn types
+- Roads are rendered as rectangles based on entry edge, junction locations, and exit edge
+- Each island can have 0, 1, or 2 junctions depending on course configuration
+
+## Code Improvements (Planned)
+
+### High Priority
+1. **Unify road rendering approach**: Refactor `drawIslandRoad()` to use rectangle-based approach like `drawComplexRoadTwoTurns()`. Eliminate complex polygon calculations.
+2. **Extract magic numbers**: Define constants for values like car half-length (0.3), stopping margin (0.05), road half-width (0.5).
+3. **Course validation**: Add validation to check that course and islands are consistent (islands large enough for junctions, junction points inside boundaries, gaps match spans).
+
+### Medium Priority
+4. **State machine refactor**: Replace nested setTimeout callbacks with declarative path segment system.
+5. **Separate renderer concerns**: Pass road configuration type instead of checking island debug numbers.
+6. **Debug mode enhancements**: Add overlays for junction markers, car target position, current game state, road segment boundaries.
+
+### Low Priority
+7. **Remove unused code**: Clean up `drawIsoCube()` method or move to utilities.
+8. **Consistent terminology enforcement**: Audit code comments and variable names for terminology consistency.
+9. **Decouple systems**: Create separate PathController, BridgeController, GameController for better modularity.
 
 ## Future Features to Consider
 
