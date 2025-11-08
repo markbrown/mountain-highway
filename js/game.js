@@ -29,13 +29,28 @@ class Game {
         // Draw islands from top to bottom (highest row first)
         // so walls extend downward over islands below
 
-        // Draw third island (topmost)
+        const wallHeight = 2000; // Extend walls far down off-screen (ground not visible)
+
+        // Draw fourth island (topmost) - 4 columns x 2 rows
+        // Near corner at game grid (row=8, col=4)
+        // Third island ends at row=7, gap of 1 row, fourth island starts at row=8
+        this.renderer.drawIsland(
+            8,    // row
+            4,    // col (same as third island)
+            4,    // width (4 columns)
+            2,    // height (2 rows)
+            wallHeight,
+            blockSize
+        );
+
+        // Draw third island
         // Near corner at game grid (row=5, col=4), extends to (row=7, col=6)
         this.renderer.drawIsland(
             5,    // row
             4,    // col
-            2,    // size (2x2)
-            400,  // wall height
+            2,    // width (2 columns)
+            2,    // height (2 rows)
+            wallHeight,
             blockSize
         );
 
@@ -44,8 +59,9 @@ class Game {
         this.renderer.drawIsland(
             0,    // row
             0,    // col
-            2,    // size (2x2)
-            400,  // wall height
+            2,    // width (2 columns)
+            2,    // height (2 rows)
+            wallHeight,
             blockSize
         );
 
@@ -55,8 +71,9 @@ class Game {
         this.renderer.drawIsland(
             0,    // row (same as first island)
             4,    // col (2 for first island + 2 for gap = 4)
-            2,    // size (2x2)
-            400,  // wall height
+            2,    // width (2 columns)
+            2,    // height (2 rows)
+            wallHeight,
             blockSize
         );
 

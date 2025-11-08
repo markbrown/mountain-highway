@@ -125,21 +125,22 @@ class Renderer {
      * Draw an island - a flat top surface with vertical walls extending downward
      * @param {number} row - game grid row (near corner)
      * @param {number} col - game grid column (near corner)
-     * @param {number} size - size of the island in grid units (e.g., 2 for 2x2)
+     * @param {number} width - width of the island in columns
+     * @param {number} height - height of the island in rows
      * @param {number} wallHeight - how far the walls extend downward (pixels)
      * @param {number} blockSize - size of each grid square in pixels
      */
-    drawIsland(row, col, size, wallHeight, blockSize) {
+    drawIsland(row, col, width, height, wallHeight, blockSize) {
         // Calculate the four corners of the top surface in game coordinates
-        // In isometric view, these form a diamond:
+        // In isometric view, these form a diamond/rhombus:
         //   - Bottom point (near): (row, col)
-        //   - Right point: (row, col+size)
-        //   - Top point (far): (row+size, col+size)
-        //   - Left point: (row+size, col)
+        //   - Right point: (row, col+width)
+        //   - Top point (far): (row+height, col+width)
+        //   - Left point: (row+height, col)
         const bottomPoint = this.gameToScreen(row, col, 0);
-        const rightPoint = this.gameToScreen(row, col + size, 0);
-        const topPoint = this.gameToScreen(row + size, col + size, 0);
-        const leftPoint = this.gameToScreen(row + size, col, 0);
+        const rightPoint = this.gameToScreen(row, col + width, 0);
+        const topPoint = this.gameToScreen(row + height, col + width, 0);
+        const leftPoint = this.gameToScreen(row + height, col, 0);
 
         // Scale corners by blockSize
         const bottom = { x: bottomPoint.x * blockSize, y: bottomPoint.y * blockSize };
@@ -149,23 +150,23 @@ class Renderer {
 
         // Draw the walls first (back to front for proper layering)
 
-        // 1. Draw the left wall (darker brown)
+        // 1. Draw the left wall (darker brown) - from left corner to bottom (near) corner
         this.ctx.fillStyle = '#6B3410';
         this.ctx.beginPath();
         this.ctx.moveTo(left.x, left.y);
         this.ctx.lineTo(left.x, left.y + wallHeight);
-        this.ctx.lineTo(top.x, top.y + wallHeight);
-        this.ctx.lineTo(top.x, top.y);
+        this.ctx.lineTo(bottom.x, bottom.y + wallHeight);
+        this.ctx.lineTo(bottom.x, bottom.y);
         this.ctx.closePath();
         this.ctx.fill();
 
-        // 2. Draw the right wall (lighter brown)
+        // 2. Draw the right wall (lighter brown) - from bottom (near) corner to right corner
         this.ctx.fillStyle = '#8B4513';
         this.ctx.beginPath();
-        this.ctx.moveTo(right.x, right.y);
+        this.ctx.moveTo(bottom.x, bottom.y);
+        this.ctx.lineTo(bottom.x, bottom.y + wallHeight);
         this.ctx.lineTo(right.x, right.y + wallHeight);
-        this.ctx.lineTo(top.x, top.y + wallHeight);
-        this.ctx.lineTo(top.x, top.y);
+        this.ctx.lineTo(right.x, right.y);
         this.ctx.closePath();
         this.ctx.fill();
 

@@ -66,22 +66,29 @@ The game uses a **row/column** coordinate system distinct from screen coordinate
 - `screenX = (col - row) * blockSize`
 - `screenY = -(col + row) / 2 * blockSize`
 
-**Example:**
-- Island at (row=0, col=0) with size=2 occupies game coordinates from (0,0) to (2,2)
-- Island at (row=0, col=4) with size=2 occupies game coordinates from (0,4) to (2,6)
-- A 2-unit gap between them means columns 2-3 are empty
+**Examples:**
+- Island at (row=0, col=0) with dimensions 2x2 occupies game coordinates from (0,0) to (2,2)
+- Island at (row=0, col=4) with dimensions 2x2 occupies game coordinates from (0,4) to (2,6)
+  - A 2-column gap between them means columns 2-3 are empty
+- Island at (row=5, col=4) with dimensions 2x2 occupies game coordinates from (5,4) to (7,6)
+  - A 3-row gap from second island (rows 2-4 are empty)
+- Island at (row=8, col=4) with dimensions 4x2 occupies game coordinates from (8,4) to (10,8)
+  - 4 columns wide, 2 rows tall
 
 ### Island Structure
-- Islands are square (typically 2x2 grid units)
+- Islands can be rectangular (e.g., 2x2, 3x2, 4x2, etc.)
+- Dimensions specified as width (columns) x height (rows)
 - Each island consists of three visible faces:
-  - **Top face**: Green grass (#4CAF50) - horizontal diamond shape
-  - **Right wall**: Light brown dirt (#8B4513) - extends downward
-  - **Left wall**: Dark brown dirt (#6B3410) - extends downward
-- Walls typically extend 400px downward (off-screen)
+  - **Top face**: Green grass (#4CAF50) - diamond/rhombus shape in isometric view
+  - **Right wall**: Light brown dirt (#8B4513) - extends from near corner to right corner
+  - **Left wall**: Dark brown dirt (#6B3410) - extends from left corner to near corner
+- Walls extend 2000px downward (well off-screen)
+  - Ground/floor is not visible - too far below
+  - Creates illusion of floating islands with deep cliff sides
 - Black outlines drawn only on visible edges:
-  - Top surface perimeter
+  - Top surface perimeter (all four edges)
   - Front vertical edge (where the two walls meet at the near corner)
-  - Two side vertical edges (where top meets each wall)
+  - Two side vertical edges (where top meets each wall on left and right)
 
 ### Rendering
 - HTML5 Canvas for all graphics
@@ -102,6 +109,11 @@ The game uses a **row/column** coordinate system distinct from screen coordinate
 - The brown walls represent vertical cliffs extending downward to an invisible ground far below
 - The isometric view shows islands "floating" with their cliff sides visible
 - Islands closer to the camera (lower row values) visually overlap those further away
+- Wall geometry:
+  - Left wall (dark brown): Quadrilateral from left corner down to near corner down
+  - Right wall (light brown): Quadrilateral from near corner down to right corner down
+  - The far corner of the island does not affect wall rendering
+  - Both walls extend straight down (2000px) parallel to the screen Y-axis
 
 ### Debug Features
 - **Debug grid**: Faint grid lines can be enabled to visualize the game coordinate system
@@ -124,8 +136,11 @@ The game uses a **row/column** coordinate system distinct from screen coordinate
 ### Completed
 - ✅ Isometric rendering system with row/column coordinate mapping
 - ✅ Island rendering with proper 3D appearance (top + two visible walls)
-- ✅ Multiple islands with configurable gaps
+- ✅ Rectangular islands with configurable width and height
+- ✅ Multiple islands with configurable gaps (row and column)
 - ✅ Proper edge rendering (visible edges only)
+- ✅ Correct render ordering (highest row to lowest row)
+- ✅ Walls extending off-screen to simulate deep cliffs
 
 ### In Progress
 - 🔄 Road rendering on islands
