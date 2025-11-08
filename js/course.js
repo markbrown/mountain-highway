@@ -35,13 +35,10 @@ class Course {
 
     /**
      * Add a span to the course
-     * @param {number} length - Length in grid squares (must be >= 3)
+     * @param {number} length - Length in grid squares
      * @param {string} direction - Direction.COLUMN or Direction.ROW
      */
     addSpan(length, direction) {
-        if (length < 3) {
-            throw new Error('Span length must be at least 3 squares');
-        }
         this.spans.push(new Span(length, direction));
     }
 
@@ -135,9 +132,10 @@ class Course {
  */
 function createExampleCourse() {
     const course = new Course();
-    course.addSpan(4, Direction.COLUMN);  // +4 columns to (5,1), left turn
-    course.addSpan(5, Direction.ROW);     // +5 rows to (5,6), straight ahead
-    course.addSpan(3, Direction.ROW);     // +3 rows to (5,9), right turn
-    course.addSpan(7, Direction.COLUMN);  // +7 columns to (12,9), end
+    course.addSpan(4, Direction.COLUMN);  // +4 columns to (1,5), left turn
+    course.addSpan(5, Direction.ROW);     // +5 rows to (6,5), straight ahead
+    course.addSpan(3, Direction.ROW);     // +3 rows to (9,5), right turn
+    course.addSpan(2, Direction.COLUMN);  // +2 columns to (9,7), left turn (stays on island 4)
+    course.addSpan(4, Direction.ROW);     // +4 rows to (13,7), end (bridge to island 5)
     return course;
 }

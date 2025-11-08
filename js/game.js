@@ -30,7 +30,8 @@ class Game {
         this.bridgeSequence = [
             { holdTime: 1.25, targetLength: 2.5 }, // Bridge 1: island 1 to 2
             { holdTime: 1.75, targetLength: 3.5 }, // Bridge 2: island 2 to 3
-            { holdTime: 0.75, targetLength: 1.5 }  // Bridge 3: island 3 to 4
+            { holdTime: 0.75, targetLength: 1.5 }, // Bridge 3: island 3 to 4
+            { holdTime: 1.0, targetLength: 4.5 }   // Bridge 4: island 4 to 5
         ];
 
         this.bridgeLength = 0;
@@ -125,7 +126,7 @@ class Game {
     }
 
     advanceToNextSegment() {
-        // Segments: 0->bridge1, 1->junction1, 2->bridge2, 3->junction2, 4->bridge3, 5->junction3, 6->edge of island 4
+        // Segments: 0->bridge1, 1->junction1, 2->bridge2, 3->junction2, 4->bridge3, 5->junction3(right), 6->junction4(left), 7->bridge4, 8->end
         this.currentBridge++;
 
         if (this.currentBridge === 1) {
@@ -151,12 +152,22 @@ class Game {
             // Just crossed bridge 3, drive to junction 3 at (9,5) then turn right
             this.targetPosition = 9;
             this.gameState = 'driving';
-            // After reaching junction, turn from row to column
+            // After reaching junction 3, turn from row to column
             setTimeout(() => {
                 this.carDirection = 'column';
-                this.targetPosition = 8 - 0.3 - 0.05; // Drive to edge of island 4
+                // Drive to junction 4 at (9,7) - NO BRIDGE, just drive along island
+                this.targetPosition = 7;
                 this.gameState = 'driving';
+                // After reaching junction 4, turn from column to row
+                setTimeout(() => {
+                    this.carDirection = 'row';
+                    this.targetPosition = 10 - 0.3 - 0.05; // Drive to edge of island 4
+                    this.gameState = 'driving';
+                }, ((7 - this.carCol) / this.carSpeed) * 1000);
             }, ((9 - this.carRow) / this.carSpeed) * 1000);
+        } else if (this.currentBridge === 4) {
+            // Just crossed bridge 4, end
+            this.gameState = 'done';
         } else {
             // Reached end
             this.gameState = 'done';
@@ -185,7 +196,7 @@ class Game {
 
         // Island data: [row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, debugNumber]
         const islands = [
-            [8, 4, 4, 2, 'row', 'column', 9, 5, 4],      // Fourth island (topmost) - 4x2, right turn
+            [8, 4, 4, 2, 'row', 'row', 9, 5, 4],         // Fourth island (topmost) - 4x2, complex: right then left turn
             [5, 4, 2, 2, 'row', 'row', 6, 5, 3],         // Third island - 2x2, straight ahead
             [0, 4, 2, 2, 'column', 'row', 1, 5, 2],      // Second island - 2x2, left turn
             [0, 0, 2, 2, 'column', 'column', 1, 1, 1],   // First island - 2x2, straight ahead
@@ -197,7 +208,12 @@ class Game {
             const corners = this.renderer.drawIslandColors(row, col, width, height, wallHeight, blockSize);
 
             // Step 2: Draw road on this island (grey)
-            this.renderer.drawIslandRoad(row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, blockSize);
+            if (debugNum === 4) {
+                // Island 4 has special complex road: row→column→row (right turn then left turn)
+                this.renderer.drawComplexRoadTwoTurns(row, col, width, height, 9, 5, 9, 7, blockSize);
+            } else {
+                this.renderer.drawIslandRoad(row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, blockSize);
+            }
 
             // Step 3: Draw island outlines (black lines)
             this.renderer.drawIslandOutlines(corners);
@@ -207,7 +223,8 @@ class Game {
         const bridgePositions = [
             { baseRow: 1, edgeCol: 2, direction: 'column' },     // Bridge 1: island 1 to 2, exits at col 2, centered at row 1
             { baseCol: 5, edgeRow: 2, direction: 'row' },        // Bridge 2: island 2 to 3, exits at row 2, centered at col 5
-            { baseCol: 5, edgeRow: 7, direction: 'row' }         // Bridge 3: island 3 to 4, exits at row 7, centered at col 5
+            { baseCol: 5, edgeRow: 7, direction: 'row' },        // Bridge 3: island 3 to 4, exits at row 7, centered at col 5
+            { baseCol: 7, edgeRow: 10, direction: 'row' }        // Bridge 4: island 4 to 5, exits at row 10, centered at col 7
         ];
 
         // Draw all completed bridges (horizontal)

@@ -599,4 +599,35 @@ class Renderer {
         this.ctx.fill();
         this.ctx.stroke();
     }
+
+    /**
+     * Draw a complex road with two turns using three overlapping rectangles
+     * Specifically for island with entry→turn1→turn2→exit
+     * @param {number} islandRow - island near corner row
+     * @param {number} islandCol - island near corner column
+     * @param {number} islandWidth - island width in columns
+     * @param {number} islandHeight - island height in rows
+     * @param {number} junction1Row - first junction row
+     * @param {number} junction1Col - first junction column
+     * @param {number} junction2Row - second junction row
+     * @param {number} junction2Col - second junction column
+     * @param {number} blockSize - size of each grid square in pixels
+     */
+    drawComplexRoadTwoTurns(islandRow, islandCol, islandWidth, islandHeight,
+                            junction1Row, junction1Col, junction2Row, junction2Col, blockSize) {
+        // Island 4: Entry at row 8, junction1 at (9,5), junction2 at (9,7), exit at row 10
+        // Draw as three overlapping rectangles:
+
+        // Rectangle 1: Entry to junction1+0.5 (row direction)
+        // From row 8 to row 9.5, centered at column 5
+        this.drawRoad(islandRow, junction1Col, junction1Row + 0.5, junction1Col, blockSize);
+
+        // Rectangle 2: Junction1 to junction2+0.5 (column direction)
+        // From column 5 to column 7.5, centered at row 9
+        this.drawRoad(junction1Row, junction1Col, junction1Row, junction2Col + 0.5, blockSize);
+
+        // Rectangle 3: Junction2 to exit edge (row direction)
+        // From row 9 to row 10, centered at column 7
+        this.drawRoad(junction2Row, junction2Col, islandRow + islandHeight, junction2Col, blockSize);
+    }
 }

@@ -206,44 +206,38 @@ Roads are rendered on island surfaces to show the course path. Each road is 1 un
 - For a course in row direction at column C: road extends from (C-0.5) to (C+0.5)
 - For a course in column direction at row R: road extends from (R-0.5) to (R+0.5)
 
-**Straight Roads:**
-- When entry and exit directions are the same (column→column or row→row)
-- Road runs from the near corner to the far corner of the island
-- Forms a straight rectangular strip 1 unit wide
+**Road Rendering Strategy:**
+Roads are composed of one or more overlapping rectangles, depending on the island's junction configuration.
 
-**L-Shaped Roads (Turns):**
-- When entry and exit directions differ (column→row or row→column)
-- Road forms an L-shape connecting entry and exit edges
-- Six corners define the L-shape polygon
+**Case 1: Straight-ahead junction (same direction in and out)**
+- Single rectangle from entry edge to exit edge
+- Example: Island 3 with row→row junction
+- Rectangle runs entire length of island in one direction
 
-**Systematic Road Calculation:**
-1. **Entry edge**: Determined by entry direction and near corner coordinate
-   - Column direction: starts at near corner column
-   - Row direction: starts at near corner row
-2. **Entry sides**: ±0.5 perpendicular to entry direction from junction point
-3. **Exit edge**: Determined by exit direction and far corner coordinate
-   - Column direction: ends at far corner column
-   - Row direction: ends at far corner row
-4. **Exit sides**: ±0.5 perpendicular to exit direction from junction point
-5. **Corner calculation**:
-   - For left turns (column→row): outside corner at (startSide1, endSide2), inside corner at (startSide2, endSide1)
-   - For right turns (row→column): outside corner at (endSide2, startSide1), inside corner at (endSide1, startSide2)
+**Case 2: Turn to bridge (one turn, followed by bridge)**
+- Two overlapping rectangles forming an L-shape
+- Rectangle 1: Entry edge to junction+0.5 (in entry direction)
+  - Extends 0.5 units past junction to account for width of next section
+- Rectangle 2: Junction to exit edge (in exit direction)
+- Example: Island 2 with column→row left turn
+  - Rect 1: Row 1 ± 0.5, column 4 to 5.5 (column direction)
+  - Rect 2: Column 5 ± 0.5, row 1 to 2 (row direction)
 
-**Example - Left Turn (column→row):**
-- Island at (0,4) size 2x2, junction at (1,5)
-- Entry: column direction, startPoint = 4 (near corner column)
-- Entry sides: row 1 ± 0.5 = (0.5, 1.5)
-- Exit: row direction, endPoint = 2 (far corner row = 0+2)
-- Exit sides: column 5 ± 0.5 = (4.5, 5.5)
-- Six corners: (0.5,4), (0.5,5.5), (2,5.5), (2,4.5), (1.5,4.5), (1.5,4)
+**Case 3: Turn to turn (two turns on same island, no bridge between)**
+- Three overlapping rectangles forming an S or Z shape
+- Rectangle 1: Entry edge to junction1+0.5 (in entry direction)
+  - Extends 0.5 units past first junction
+- Rectangle 2: Junction1 to junction2+0.5 (in middle direction)
+  - Extends 0.5 units past second junction
+- Rectangle 3: Junction2 to exit edge (in exit direction)
+  - Ends at island edge (followed by bridge)
+- Example: Island 4 with row→column→row (right turn then left turn)
+  - Rect 1: Column 5 ± 0.5, row 8 to 9.5 (row direction)
+  - Rect 2: Row 9 ± 0.5, column 5 to 7.5 (column direction)
+  - Rect 3: Column 7 ± 0.5, row 9 to 10 (row direction)
 
-**Example - Right Turn (row→column):**
-- Island at (8,4) size 4x2, junction at (9,5)
-- Entry: row direction, startPoint = 8 (near corner row)
-- Entry sides: column 5 ± 0.5 = (4.5, 5.5)
-- Exit: column direction, endPoint = 8 (far corner column = 4+4)
-- Exit sides: row 9 ± 0.5 = (8.5, 9.5)
-- Six corners: (8,4.5), (9.5,4.5), (9.5,8), (8.5,8), (8.5,5.5), (8,5.5)
+**Key Principle:**
+When a road segment leads directly to another junction (without crossing a bridge), it must extend 0.5 units past the junction point. This accounts for the width of the road in the perpendicular direction and ensures proper visual overlap at corners.
 
 ### Rendering
 - HTML5 Canvas for all graphics
