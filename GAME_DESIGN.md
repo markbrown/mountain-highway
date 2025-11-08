@@ -157,6 +157,7 @@ For **turns** (left or right):
 ### File Structure
 - `index.html` - Main HTML page
 - `style.css` - Styling for canvas and page layout
+- `js/config.js` - Game configuration and constants (all magic numbers centralized)
 - `js/renderer.js` - Core rendering engine (islands, isometric projection)
 - `js/course.js` - Course definition and management (spans, junctions, directions)
 - `js/game.js` - Game loop, island data, and main logic
@@ -302,8 +303,8 @@ Both debug features are disabled by default and render on a separate layer above
 ## Code Improvements (Planned)
 
 ### High Priority
-1. **Unify road rendering approach**: Refactor `drawIslandRoad()` to use rectangle-based approach like `drawComplexRoadTwoTurns()`. Eliminate complex polygon calculations.
-2. **Extract magic numbers**: Define constants for values like car half-length (0.3), stopping margin (0.05), road half-width (0.5).
+1. ~~**Unify road rendering approach**: Refactor `drawIslandRoad()` to use rectangle-based approach like `drawComplexRoadTwoTurns()`. Eliminate complex polygon calculations.~~ ✅ **Completed**
+2. ~~**Extract magic numbers**: Define constants for values like car half-length (0.3), stopping margin (0.05), road half-width (0.5).~~ ✅ **Completed** - Created `config.js` with all game parameters centralized
 3. **Course validation**: Add validation to check that course and islands are consistent (islands large enough for junctions, junction points inside boundaries, gaps match spans).
 
 ### Medium Priority

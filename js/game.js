@@ -7,8 +7,8 @@ class Game {
         this.debug = new DebugRenderer(this.renderer);
 
         // Debug options
-        this.showDebugGrid = true;
-        this.showIslandNumbers = false;
+        this.showDebugGrid = GameConfig.debug.showGrid;
+        this.showIslandNumbers = GameConfig.debug.showIslandNumbers;
 
         // Create the example course
         this.course = createExampleCourse();
@@ -17,11 +17,11 @@ class Game {
         this.carRow = 1;
         this.carCol = 1;
         this.carDirection = 'column'; // Direction car is facing
-        this.carSpeed = 2.0; // units per second
+        this.carSpeed = GameConfig.car.speed;
 
         // Bridge animation state
-        this.bridgeGrowthRate = 2.0; // units per second
-        this.slamDuration = 0.2; // 0.2 seconds to slam down
+        this.bridgeGrowthRate = GameConfig.bridge.growthRate;
+        this.slamDuration = GameConfig.bridge.slamDuration;
 
         // Current bridge being animated (0, 1, or 2 for bridges 1-3)
         this.currentBridge = 0;
@@ -53,9 +53,8 @@ class Game {
         console.log('Course end:', this.course.getEndLocation());
         console.log('Span details:', this.course.getSpanDetails());
 
-        // Initialize: car drives to edge of first island (column 2 - car half-length - small margin)
-        // Car is 0.6 units long, so front bumper is 0.3 units ahead of center
-        this.targetPosition = 2 - 0.3 - 0.05; // Stop with front bumper just before edge
+        // Initialize: car drives to edge of first island (column 2 - car half-length - stopping margin)
+        this.targetPosition = 2 - GameConfig.car.halfLength - GameConfig.car.stoppingMargin;
         this.gameState = 'driving';
 
         // Start animation loop
@@ -136,7 +135,7 @@ class Game {
             // After reaching junction, car will be at (1,5) facing column, need to turn to row
             setTimeout(() => {
                 this.carDirection = 'row';
-                this.targetPosition = 2 - 0.3 - 0.05; // Drive to edge of island 2
+                this.targetPosition = 2 - GameConfig.car.halfLength - GameConfig.car.stoppingMargin;
                 this.gameState = 'driving';
             }, ((5 - this.carCol) / this.carSpeed) * 1000);
         } else if (this.currentBridge === 2) {
@@ -145,7 +144,7 @@ class Game {
             this.gameState = 'driving';
             // No turn needed, continue to edge of island 3
             setTimeout(() => {
-                this.targetPosition = 7 - 0.3 - 0.05; // Drive to edge of island 3
+                this.targetPosition = 7 - GameConfig.car.halfLength - GameConfig.car.stoppingMargin;
                 this.gameState = 'driving';
             }, ((6 - this.carRow) / this.carSpeed) * 1000);
         } else if (this.currentBridge === 3) {
@@ -161,7 +160,7 @@ class Game {
                 // After reaching junction 4, turn from column to row
                 setTimeout(() => {
                     this.carDirection = 'row';
-                    this.targetPosition = 10 - 0.3 - 0.05; // Drive to edge of island 4
+                    this.targetPosition = 10 - GameConfig.car.halfLength - GameConfig.car.stoppingMargin;
                     this.gameState = 'driving';
                 }, ((7 - this.carCol) / this.carSpeed) * 1000);
             }, ((9 - this.carRow) / this.carSpeed) * 1000);
@@ -177,11 +176,11 @@ class Game {
     render() {
         this.renderer.clear();
 
-        const blockSize = 50;
+        const blockSize = GameConfig.grid.blockSize;
 
         // Center the view on canvas
         this.renderer.ctx.save();
-        this.renderer.ctx.translate(400, 500); // Offset to center islands on screen
+        this.renderer.ctx.translate(GameConfig.grid.viewOffsetX, GameConfig.grid.viewOffsetY);
 
         // Draw debug grid (optional - for development)
         if (this.showDebugGrid) {
@@ -192,7 +191,7 @@ class Game {
         // For each island: base colors → road → black lines
         // This ensures nearer islands properly overlap more distant ones
 
-        const wallHeight = 2000; // Extend walls far down off-screen (ground not visible)
+        const wallHeight = GameConfig.island.wallHeight;
 
         // Island data: [row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, debugNumber]
         const islands = [
@@ -231,11 +230,12 @@ class Game {
         for (let i = 0; i < this.currentBridge; i++) {
             const pos = bridgePositions[i];
             const bridgeData = this.bridgeSequence[i];
+            const baseOffset = GameConfig.bridge.baseOffset;
 
             if (pos.direction === 'column') {
-                this.renderer.drawHorizontalBridge(pos.baseRow, pos.edgeCol - 0.1, pos.direction, bridgeData.targetLength + 0.1, blockSize);
+                this.renderer.drawHorizontalBridge(pos.baseRow, pos.edgeCol - baseOffset, pos.direction, bridgeData.targetLength + baseOffset, blockSize);
             } else {
-                this.renderer.drawHorizontalBridge(pos.edgeRow - 0.1, pos.baseCol, pos.direction, bridgeData.targetLength + 0.1, blockSize);
+                this.renderer.drawHorizontalBridge(pos.edgeRow - baseOffset, pos.baseCol, pos.direction, bridgeData.targetLength + baseOffset, blockSize);
             }
         }
 

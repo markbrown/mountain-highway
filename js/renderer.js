@@ -6,12 +6,12 @@ class Renderer {
         this.ctx = canvas.getContext('2d');
 
         // Set canvas size
-        this.canvas.width = 800;
-        this.canvas.height = 600;
+        this.canvas.width = GameConfig.canvas.width;
+        this.canvas.height = GameConfig.canvas.height;
     }
 
     clear() {
-        this.ctx.fillStyle = '#87CEEB'; // Sky blue
+        this.ctx.fillStyle = GameConfig.canvas.backgroundColor;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
@@ -146,9 +146,8 @@ class Renderer {
      * @param {number} blockSize - size of each grid square in pixels
      */
     drawRoad(startRow, startCol, endRow, endCol, blockSize) {
-        const roadColor = '#444444'; // Dark gray for road
-        const roadWidth = 1.0; // Road is 1 unit wide
-        const halfWidth = roadWidth / 2;
+        const roadColor = GameConfig.road.color;
+        const halfWidth = GameConfig.road.halfWidth;
 
         // Determine if road runs in row or column direction
         if (startCol === endCol) {
@@ -220,7 +219,7 @@ class Renderer {
         // Draw the walls first (back to front for proper layering)
 
         // 1. Draw the left wall (darker brown)
-        this.ctx.fillStyle = '#6B3410';
+        this.ctx.fillStyle = GameConfig.island.dirtDarkColor;
         this.ctx.beginPath();
         this.ctx.moveTo(left.x, left.y);
         this.ctx.lineTo(left.x, left.y + wallHeight);
@@ -230,7 +229,7 @@ class Renderer {
         this.ctx.fill();
 
         // 2. Draw the right wall (lighter brown)
-        this.ctx.fillStyle = '#8B4513';
+        this.ctx.fillStyle = GameConfig.island.dirtLightColor;
         this.ctx.beginPath();
         this.ctx.moveTo(bottom.x, bottom.y);
         this.ctx.lineTo(bottom.x, bottom.y + wallHeight);
@@ -240,7 +239,7 @@ class Renderer {
         this.ctx.fill();
 
         // 3. Draw the green top surface
-        this.ctx.fillStyle = '#4CAF50';
+        this.ctx.fillStyle = GameConfig.island.grassColor;
         this.ctx.beginPath();
         this.ctx.moveTo(bottom.x, bottom.y);
         this.ctx.lineTo(right.x, right.y);
@@ -260,8 +259,8 @@ class Renderer {
     drawIslandOutlines(corners) {
         const { bottom, right, top, left, wallHeight } = corners;
 
-        this.ctx.strokeStyle = '#000';
-        this.ctx.lineWidth = 2;
+        this.ctx.strokeStyle = GameConfig.island.outlineColor;
+        this.ctx.lineWidth = GameConfig.island.outlineWidth;
 
         // Outline of top surface
         this.ctx.beginPath();
@@ -314,9 +313,8 @@ class Renderer {
      * @param {number} blockSize - size of each grid square in pixels
      */
     drawVerticalBridge(baseRow, baseCol, direction, length, blockSize) {
-        const bridgeColor = '#444444'; // Same dark gray as road
-        const roadWidth = 1.0; // Bridge is same width as road
-        const halfWidth = roadWidth / 2;
+        const bridgeColor = GameConfig.bridge.color;
+        const halfWidth = GameConfig.road.halfWidth;
 
         // Calculate the four corners of the bridge rectangle at the base
         let corner1, corner2, corner3, corner4;
@@ -361,9 +359,8 @@ class Renderer {
      * @param {number} blockSize - size of each grid square in pixels
      */
     drawRotatingBridge(baseRow, baseCol, direction, length, rotation, blockSize) {
-        const bridgeColor = '#444444';
-        const roadWidth = 1.0;
-        const halfWidth = roadWidth / 2;
+        const bridgeColor = GameConfig.bridge.color;
+        const halfWidth = GameConfig.road.halfWidth;
 
         // Calculate the direction vector for when horizontal
         let dirX, dirY;
@@ -436,9 +433,8 @@ class Renderer {
      * @param {number} blockSize - size of each grid square in pixels
      */
     drawHorizontalBridge(baseRow, baseCol, direction, length, blockSize) {
-        const bridgeColor = '#444444';
-        const roadWidth = 1.0;
-        const halfWidth = roadWidth / 2;
+        const bridgeColor = GameConfig.bridge.color;
+        const halfWidth = GameConfig.road.halfWidth;
 
         // Calculate corners based on direction
         let corner1, corner2, corner3, corner4;
@@ -477,8 +473,7 @@ class Renderer {
      * @param {number} blockSize - size of each grid square in pixels
      */
     drawBridgeEdgeLine(baseRow, baseCol, direction, blockSize) {
-        const roadWidth = 1.0;
-        const halfWidth = roadWidth / 2;
+        const halfWidth = GameConfig.road.halfWidth;
 
         let corner1, corner2;
         if (direction === 'column') {
@@ -491,8 +486,8 @@ class Renderer {
             corner2 = this.gameToScreen(baseRow, baseCol + halfWidth, 0);
         }
 
-        this.ctx.strokeStyle = '#000';
-        this.ctx.lineWidth = 2;
+        this.ctx.strokeStyle = GameConfig.island.outlineColor;
+        this.ctx.lineWidth = GameConfig.island.outlineWidth;
         this.ctx.beginPath();
         this.ctx.moveTo(corner1.x * blockSize, corner1.y * blockSize);
         this.ctx.lineTo(corner2.x * blockSize, corner2.y * blockSize);
@@ -507,9 +502,8 @@ class Renderer {
      * @param {number} blockSize - size of each grid square in pixels
      */
     drawCar(row, col, direction, blockSize) {
-        const carColor = '#FF0000'; // Red
-        const carLength = 0.6; // Length of car in game units
-        const carWidth = 0.4; // Width of car in game units
+        const carLength = GameConfig.car.length;
+        const carWidth = GameConfig.car.width;
 
         // Calculate car corners based on direction
         let corner1, corner2, corner3, corner4;
@@ -517,7 +511,7 @@ class Renderer {
         if (direction === 'column') {
             // Car faces in column direction (rightward on screen)
             // Car centered at (row, col), extends from col-length/2 to col+length/2
-            const halfLength = carLength / 2;
+            const halfLength = GameConfig.car.halfLength;
             const halfWidth = carWidth / 2;
 
             corner1 = this.gameToScreen(row - halfWidth, col - halfLength, 0);
@@ -527,7 +521,7 @@ class Renderer {
         } else {
             // Car faces in row direction (upward on screen)
             // Car centered at (row, col), extends from row-length/2 to row+length/2
-            const halfLength = carLength / 2;
+            const halfLength = GameConfig.car.halfLength;
             const halfWidth = carWidth / 2;
 
             corner1 = this.gameToScreen(row - halfLength, col - halfWidth, 0);
@@ -536,9 +530,9 @@ class Renderer {
             corner4 = this.gameToScreen(row - halfLength, col + halfWidth, 0);
         }
 
-        this.ctx.fillStyle = carColor;
-        this.ctx.strokeStyle = '#000';
-        this.ctx.lineWidth = 1;
+        this.ctx.fillStyle = GameConfig.car.color;
+        this.ctx.strokeStyle = GameConfig.car.outlineColor;
+        this.ctx.lineWidth = GameConfig.car.outlineWidth;
 
         this.ctx.beginPath();
         this.ctx.moveTo(corner1.x * blockSize, corner1.y * blockSize);

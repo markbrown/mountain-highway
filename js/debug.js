@@ -19,11 +19,11 @@ class DebugRenderer {
         for (let col = minCol; col <= maxCol; col++) {
             // Every 4th line gets a different color and is thicker
             if (col % 4 === 0) {
-                this.ctx.strokeStyle = 'rgba(0, 0, 255, 0.25)'; // Blue for every 4th line
-                this.ctx.lineWidth = 2;
+                this.ctx.strokeStyle = GameConfig.debug.gridEvery4Color;
+                this.ctx.lineWidth = GameConfig.debug.gridEvery4Width;
             } else {
-                this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)'; // Faint black for regular lines
-                this.ctx.lineWidth = 1;
+                this.ctx.strokeStyle = GameConfig.debug.gridRegularColor;
+                this.ctx.lineWidth = GameConfig.debug.gridRegularWidth;
             }
 
             this.ctx.beginPath();
@@ -38,11 +38,11 @@ class DebugRenderer {
         for (let row = minRow; row <= maxRow; row++) {
             // Every 4th line gets a different color and is thicker
             if (row % 4 === 0) {
-                this.ctx.strokeStyle = 'rgba(0, 0, 255, 0.25)'; // Blue for every 4th line
-                this.ctx.lineWidth = 2;
+                this.ctx.strokeStyle = GameConfig.debug.gridEvery4Color;
+                this.ctx.lineWidth = GameConfig.debug.gridEvery4Width;
             } else {
-                this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)'; // Faint black for regular lines
-                this.ctx.lineWidth = 1;
+                this.ctx.strokeStyle = GameConfig.debug.gridRegularColor;
+                this.ctx.lineWidth = GameConfig.debug.gridRegularWidth;
             }
 
             this.ctx.beginPath();
@@ -72,8 +72,8 @@ class DebugRenderer {
         const centerY = centerPoint.y * blockSize;
 
         // Draw the number
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        this.ctx.font = 'bold 24px Arial';
+        this.ctx.fillStyle = GameConfig.debug.islandNumberColor;
+        this.ctx.font = GameConfig.debug.islandNumberFont;
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         this.ctx.fillText(number.toString(), centerX, centerY);
