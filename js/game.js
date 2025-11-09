@@ -78,12 +78,14 @@ class Game {
         console.log('Course end:', this.course.getEndLocation());
         console.log('Span details:', this.course.getSpanDetails());
 
-        // Get island data for validation
+        // Get island data in course-visit order
+        // Island number = number of bridges crossed to reach it
         const islands = [
-            [8, 4, 4, 2], // Island 4
-            [5, 4, 2, 2], // Island 3
-            [0, 4, 2, 2], // Island 2
-            [0, 0, 2, 2], // Island 1
+            [0, 0, 2, 2],   // Island 0: Start (0 bridges crossed)
+            [0, 4, 2, 2],   // Island 1: After bridge 0 (1 bridge crossed)
+            [5, 4, 2, 2],   // Island 2: After bridge 1 (2 bridges crossed)
+            [8, 4, 4, 2],   // Island 3: After bridge 2 (2 junctions: spans 3 & 4)
+            [12, 6, 2, 2],  // Island 4: After bridge 3 (final destination)
         ];
 
         // Validate course and islands
@@ -232,22 +234,26 @@ class Game {
 
         const wallHeight = GameConfig.island.wallHeight;
 
-        // Island data: [row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, debugNumber]
-        const islands = [
-            [8, 4, 4, 2, 'row', 'row', 9, 5, 4],         // Fourth island (topmost) - 4x2, complex: right then left turn
-            [5, 4, 2, 2, 'row', 'row', 6, 5, 3],         // Third island - 2x2, straight ahead
-            [0, 4, 2, 2, 'column', 'row', 1, 5, 2],      // Second island - 2x2, left turn
-            [0, 0, 2, 2, 'column', 'column', 1, 1, 1],   // First island - 2x2, straight ahead
+        // Island rendering data: [row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, islandNum, hasComplexRoad]
+        const islandRenderData = [
+            [0, 0, 2, 2, 'column', 'column', 1, 1, 0, false],           // Island 0: Start
+            [0, 4, 2, 2, 'column', 'row', 1, 5, 1, false],              // Island 1: After bridge 0, left turn
+            [5, 4, 2, 2, 'row', 'row', 6, 5, 2, false],                 // Island 2: After bridge 1, straight ahead
+            [8, 4, 4, 2, 'row', 'row', 9, 5, 3, true],                  // Island 3: After bridge 2, complex (2 junctions)
+            [12, 6, 2, 2, 'row', 'row', 13, 7, 4, false],               // Island 4: After bridge 3, final destination
         ];
 
+        // Sort by row (descending) for proper back-to-front rendering
+        const sortedRenderData = [...islandRenderData].sort((a, b) => b[0] - a[0]);
+
         // Render each island completely (colors → road → lines) from farthest to nearest
-        islands.forEach(([row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, debugNum]) => {
+        sortedRenderData.forEach(([row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, islandNum, hasComplexRoad]) => {
             // Step 1: Draw island base colors (green and brown)
             const corners = this.renderer.drawIslandColors(row, col, width, height, wallHeight, blockSize);
 
             // Step 2: Draw road on this island (grey)
-            if (debugNum === 4) {
-                // Island 4 has special complex road: row→column→row (right turn then left turn)
+            if (hasComplexRoad) {
+                // Island 3 has complex road: row→column→row (right turn then left turn)
                 this.renderer.drawComplexRoadTwoTurns(row, col, width, height, 9, 5, 9, 7, blockSize);
             } else {
                 this.renderer.drawIslandRoad(row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, blockSize);
@@ -309,8 +315,8 @@ class Game {
 
         // Draw debug overlays (on top of everything)
         if (this.showIslandNumbers) {
-            islands.forEach(([row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, debugNum]) => {
-                this.debug.drawIslandNumber(row, col, width, height, debugNum, blockSize);
+            islandRenderData.forEach(([row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, islandNum]) => {
+                this.debug.drawIslandNumber(row, col, width, height, islandNum, blockSize);
             });
         }
 

@@ -172,6 +172,27 @@ The game uses a **row/column** coordinate system on an infinite grid plane:
 - **Column**: Increases rightward on screen (toward the right side of the canvas)
 - **Grid unit**: 50px base block size (configurable)
 
+**Coordinate Notation Convention:**
+- All positions written as **(row, col)** - row first, column second
+- Example: Position (1, 5) means row=1, col=5
+- Islands stored as `[row, col, width, height]`
+- Course start: `{ startRow: 1, startCol: 1 }`
+
+**Island Ordering Convention:**
+- Islands are ordered by course-visit sequence
+- Island number = number of bridges crossed to reach it
+- Island 0 is the start (0 bridges crossed)
+- Island N is reached after crossing bridge N-1
+- Multiple junctions can occur on a single island (no bridge between them)
+- Example: 5 islands (0-4) connected by 4 bridges (0-3)
+
+**Benefits of Course-Order Islands:**
+- Island array index directly corresponds to semantic game progress
+- Bridge index matches destination island (bridge 0 → island 1, bridge 1 → island 2, etc.)
+- Validation logic becomes clearer (check bridge N lands on island N+1)
+- Debugging is easier (island numbers reflect actual gameplay sequence)
+- Game state can reference "current island" by simple index
+
 **Coordinate mapping to screen (isometric projection):**
 - Pure transformation: `screenX = col - row`, `screenY = -(col + row) / 2`
 - The `gameToScreen()` method performs this pure mathematical transformation
@@ -182,14 +203,29 @@ The **Viewport** class defines what region of the infinite grid plane to display
 
 - **Purpose**: Separates the concept of the game grid from the view
 - **Viewport bounds**: Defined by `minRow, maxRow, minCol, maxCol`
-- **Canvas sizing**: Automatically calculated to exactly fit the viewport region
-- **Offset calculation**: Positions the viewport region at canvas origin
-- **Usage**: Pass viewport to Renderer constructor, or omit for default fixed canvas
+- **Canvas sizing**: Two modes supported:
+  - **Auto-sized**: Canvas dimensions calculated to exactly fit viewport region
+  - **Fixed-size**: Specified width/height with viewport centered in canvas
+- **Offset calculation**: Positions the viewport region appropriately in canvas space
+  - Auto-sized: Viewport positioned at canvas origin (0,0)
+  - Fixed-size: Viewport centered in canvas (common for main game view)
+- **Usage**: Pass viewport to Renderer constructor
 
-This architecture allows:
-- Static visualizations with custom viewports (e.g., test suite)
-- Future features like camera panning, zooming, or following the car
-- Different courses with different viewport requirements
+**Architecture Benefits:**
+- Separates infinite grid plane concept from finite view window
+- Enables static visualizations with custom viewports (e.g., test suite)
+- Supports future features like camera panning, zooming, or following the car
+- Allows different courses with different viewport requirements
+- Single rendering codebase works for both game canvas and test visualizations
+
+**Example Usage:**
+```javascript
+// Fixed-size canvas (main game - 800x600 showing specific region)
+const viewport = new Viewport(-1, 11, -1, 9, 50, 800, 600);
+
+// Auto-sized canvas (test suite - size calculated to fit islands)
+const viewport = new Viewport(minRow, maxRow, minCol, maxCol, 50);
+```
 
 **Examples:**
 - Island at (row=0, col=0) with dimensions 2x2 occupies game coordinates from (0,0) to (2,2)
@@ -297,12 +333,36 @@ Debug utilities are separated into `js/debug.js` and render as overlays on top o
 
 **Island Numbering:**
 - White semi-transparent numbers (80% opacity) displayed at the center of each island
-- Numbers start from 1 for the first island added
+- Numbers reflect course-visit order (island 0 = start, island N = after N bridges)
 - Rendered in bold 24px Arial font
 - Toggle via `showIslandNumbers` flag in game.js
 - Useful for identifying islands during development and debugging
 
 Both debug features are disabled by default and render on a separate layer above all game graphics.
+
+### Test Suite Visualization
+The validation test suite (`test-validation.html`) provides comprehensive debugging visualizations:
+
+**Test Case Display:**
+- Each test case shows: expected result, actual result, pass/fail status
+- Detailed tables show course spans and island configurations
+- Visual rendering of each test case using auto-sized viewport
+
+**Visual Debugging Aids:**
+- **Grid lines**: Blue grid showing row/column boundaries (starting from 0,0)
+- **Course overlay**: Yellow dots and lines showing the defined course path
+  - Yellow dots mark start position and all junction points
+  - Yellow lines connect consecutive positions along the course
+  - Helps verify that course definition matches expected layout
+- **Island numbering**: Shows course-visit order for each island
+- **Full rendering**: Islands, walls, roads all rendered as they appear in game
+
+**Benefits:**
+- Quickly identify misalignments between course and islands
+- Verify junction positions are correct and inside island boundaries
+- Spot gaps or overlaps in road rendering
+- Test different course configurations without running the full game
+- Systematic validation of all 5 validation checks across 10 test cases
 
 ## Terminology
 

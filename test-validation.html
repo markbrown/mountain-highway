@@ -101,6 +101,7 @@
     <script src="js/config.js"></script>
     <script src="js/renderer.js"></script>
     <script src="js/course.js"></script>
+    <script src="js/debug.js"></script>
     <script src="js/validation.js"></script>
     <script>
         // Static course visualizer using Viewport
@@ -118,6 +119,7 @@
                 // Create canvas with viewport
                 const canvas = document.createElement('canvas');
                 const renderer = new Renderer(canvas, viewport);
+                const debug = new DebugRenderer(renderer);
 
                 // Clear background
                 renderer.clear();
@@ -131,6 +133,11 @@
                 const blockSize = viewport.blockSize;
                 const wallHeight = GameConfig.island.wallHeight;
 
+                // Draw debug grid starting from (0,0) even though viewport may have margin
+                const gridMinRow = Math.max(0, bounds.minRow);
+                const gridMinCol = Math.max(0, bounds.minCol);
+                debug.drawGrid(gridMinRow, bounds.maxRow, gridMinCol, bounds.maxCol, blockSize);
+
                 // Render islands (back to front)
                 const sortedIslands = [...islands].sort((a, b) => b[0] - a[0]);
 
@@ -143,8 +150,50 @@
                     renderer.drawIslandOutlines(corners);
                 });
 
+                // Draw course overlay (junctions and spans in yellow)
+                this.drawCourseOverlay(renderer, course, blockSize);
+
                 ctx.restore();
                 return canvas;
+            }
+
+            static drawCourseOverlay(renderer, course, blockSize) {
+                const ctx = renderer.ctx;
+                const spanDetails = course.getSpanDetails();
+
+                ctx.strokeStyle = 'yellow';
+                ctx.lineWidth = 2;
+                ctx.fillStyle = 'yellow';
+
+                // Draw start position
+                const startScreen = renderer.gameToScreen(course.startRow, course.startCol, 0);
+                ctx.beginPath();
+                ctx.arc(startScreen.x * blockSize, startScreen.y * blockSize, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw each span as a line
+                let currentRow = course.startRow;
+                let currentCol = course.startCol;
+
+                spanDetails.forEach((span, idx) => {
+                    // Draw line from current position to junction
+                    const startScreen = renderer.gameToScreen(currentRow, currentCol, 0);
+                    const endScreen = renderer.gameToScreen(span.endRow, span.endCol, 0);
+
+                    ctx.beginPath();
+                    ctx.moveTo(startScreen.x * blockSize, startScreen.y * blockSize);
+                    ctx.lineTo(endScreen.x * blockSize, endScreen.y * blockSize);
+                    ctx.stroke();
+
+                    // Draw junction point
+                    ctx.beginPath();
+                    ctx.arc(endScreen.x * blockSize, endScreen.y * blockSize, 4, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Update current position
+                    currentRow = span.endRow;
+                    currentCol = span.endCol;
+                });
             }
 
             static drawRoadForIsland(renderer, course, island, blockSize) {
@@ -215,7 +264,7 @@
                     maxCol = Math.max(maxCol, col + width);
                 });
 
-                // Add 1 unit margin
+                // Add 1 unit margin (viewport can go below 0 for margin)
                 return {
                     minRow: minRow - 1,
                     maxRow: maxRow + 1,
@@ -253,12 +302,13 @@
             static renderIslandDetails(islands) {
                 let html = '<h4>Island Configuration</h4>';
                 html += '<table>';
-                html += '<tr><th>#</th><th>Position</th><th>Width</th><th>Height</th><th>Bounds</th></tr>';
+                html += '<tr><th>#</th><th>Bridges Crossed</th><th>Position</th><th>Width</th><th>Height</th><th>Bounds</th></tr>';
 
                 islands.forEach((island, idx) => {
                     const [row, col, width, height] = island;
                     html += `<tr>`;
-                    html += `<td>${idx + 1}</td>`;
+                    html += `<td>${idx}</td>`;
+                    html += `<td>${idx}</td>`;
                     html += `<td>(${row}, ${col})</td>`;
                     html += `<td>${width}</td>`;
                     html += `<td>${height}</td>`;
@@ -369,10 +419,11 @@
             'The current game configuration should pass all validation checks',
             () => createExampleCourse(),
             () => [
-                [8, 4, 4, 2], // Island 4
-                [5, 4, 2, 2], // Island 3
-                [0, 4, 2, 2], // Island 2
-                [0, 0, 2, 2], // Island 1
+                [0, 0, 2, 2],   // Island 0: Start (0 bridges crossed)
+                [0, 4, 2, 2],   // Island 1: After bridge 0
+                [5, 4, 2, 2],   // Island 2: After bridge 1
+                [8, 4, 4, 2],   // Island 3: After bridge 2 (has 2 junctions)
+                [12, 6, 2, 2],  // Island 4: After bridge 3 (final destination)
             ],
             true
         );
