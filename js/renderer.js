@@ -653,18 +653,22 @@ class Renderer {
             const hasTurnAfter = nextSegment && (nextSegment.direction !== segment.direction);
 
             if (segment.direction === Direction.COLUMN) {
-                // Road travels in column direction (rightward)
+                // Road travels in column direction (rightward or leftward)
                 const startCol = segment.startCol;
                 // Extend 0.5 past junction only if there's a turn after this segment
-                const endCol = hasTurnAfter ? segment.endCol + 0.5 : segment.endCol;
+                // Use sign to determine direction: positive = +0.5, negative = -0.5
+                const extension = segment.sign * 0.5;
+                const endCol = hasTurnAfter ? segment.endCol + extension : segment.endCol;
                 const row = segment.startRow;
 
                 this.drawRoad(row, startCol, row, endCol, blockSize);
             } else {
-                // Road travels in row direction (upward)
+                // Road travels in row direction (upward or downward)
                 const startRow = segment.startRow;
                 // Extend 0.5 past junction only if there's a turn after this segment
-                const endRow = hasTurnAfter ? segment.endRow + 0.5 : segment.endRow;
+                // Use sign to determine direction: positive = +0.5, negative = -0.5
+                const extension = segment.sign * 0.5;
+                const endRow = hasTurnAfter ? segment.endRow + extension : segment.endRow;
                 const col = segment.startCol;
 
                 this.drawRoad(startRow, col, endRow, col, blockSize);

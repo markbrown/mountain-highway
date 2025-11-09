@@ -266,7 +266,8 @@ class Course {
                 startCol: segmentStart.col,
                 endRow: segmentEnd.row,
                 endCol: segmentEnd.col,
-                direction: span.direction
+                direction: span.direction,
+                sign: span.sign
             });
         });
 
@@ -447,7 +448,9 @@ function createExampleCourse() {
     course.addSpan(2, Direction.COLUMN);  // +2 columns to (9,7), turn (stays on island 3)
     course.addSpan(4, Direction.ROW);     // +4 rows to (13,7), turn (bridge to island 4)
     course.addSpan(3, Direction.COLUMN);  // +3 columns to (13,10), turn (bridge to island 5)
-    course.addSpan(-4, Direction.ROW);    // -4 rows to (9,10), end (bridge to island 6)
+    course.addSpan(-4, Direction.ROW);    // -4 rows to (9,10), turn (bridge to island 6)
+    course.addSpan(-3, Direction.ROW);    // -3 rows to (6,10), turn (bridge to island 7)
+    course.addSpan(3, Direction.COLUMN);  // +3 columns to (6,13), end (stays on island 7)
     return course;
 }
 
@@ -467,7 +470,8 @@ function createExampleLevel() {
         [8, 4, 4, 2],   // Island 3: After bridge 2 (has 2 junctions)
         [11, 6, 2, 3],  // Island 4: After bridge 3 - 3 rows × 2 cols
         [12, 9, 2, 2],  // Island 5: After bridge 4
-        [8, 9, 2, 2],   // Island 6: After bridge 5 (end, negative span)
+        [8, 9, 2, 2],   // Island 6: After bridge 5 (negative span)
+        [5, 9, 5, 2],   // Island 7: After bridge 6 (end, negative span) - 2 rows × 5 cols
     ];
 
     return new Level(course, islands);

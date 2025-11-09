@@ -93,6 +93,11 @@ class DebugRenderer {
             const range = bridge.calculateRange(islands);
 
             if (range.needsBridge) {
+                // Determine sign from start/end positions
+                const sign = bridge.direction === Direction.COLUMN ?
+                    Math.sign(bridge.endPos.col - bridge.startPos.col) :
+                    Math.sign(bridge.endPos.row - bridge.startPos.row);
+
                 // Draw the bridge zone overlays
                 this.drawBridgeZone(
                     bridge.startPos,
@@ -101,7 +106,8 @@ class DebugRenderer {
                     range.minSafe,
                     range.maxSafe,
                     roadWidth,
-                    blockSize
+                    blockSize,
+                    sign
                 );
             }
         });
@@ -116,48 +122,49 @@ class DebugRenderer {
      * @param {number} maxSafe - Maximum safe bridge length
      * @param {number} roadWidth - Width of the road
      * @param {number} blockSize - size of each grid square in pixels
+     * @param {number} sign - Direction of travel: +1 (positive) or -1 (negative)
      */
-    drawBridgeZone(spanStart, direction, startIsland, minSafe, maxSafe, roadWidth, blockSize) {
+    drawBridgeZone(spanStart, direction, startIsland, minSafe, maxSafe, roadWidth, blockSize, sign) {
         const [startRow, startCol, startWidth, startHeight] = startIsland;
 
         if (direction === Direction.COLUMN) {
             // Bridge extends in column direction (horizontal in screen space)
-            const exitEdge = startCol + startWidth;
+            const exitEdge = sign > 0 ? (startCol + startWidth) : startCol;
             const centerRow = spanStart.row;
 
-            // Draw full bridge zone (white fill) from exit edge to maxSafe
+            // Draw full bridge zone (white fill) from exit edge in travel direction
             this.renderer.drawRoad(
                 centerRow, exitEdge,
-                centerRow, exitEdge + maxSafe,
+                centerRow, exitEdge + (sign * maxSafe),
                 blockSize,
                 GameConfig.debug.bridgeZoneColor
             );
 
             // Draw safe zone outline (dark green) from minSafe to maxSafe
             this.renderer.drawRoadOutline(
-                centerRow, exitEdge + minSafe,
-                centerRow, exitEdge + maxSafe,
+                centerRow, exitEdge + (sign * minSafe),
+                centerRow, exitEdge + (sign * maxSafe),
                 blockSize,
                 GameConfig.debug.bridgeSafeZoneOutlineColor,
                 GameConfig.debug.bridgeSafeZoneOutlineWidth
             );
         } else {
             // Bridge extends in row direction (vertical in screen space)
-            const exitEdge = startRow + startHeight;
+            const exitEdge = sign > 0 ? (startRow + startHeight) : startRow;
             const centerCol = spanStart.col;
 
-            // Draw full bridge zone (white fill) from exit edge to maxSafe
+            // Draw full bridge zone (white fill) from exit edge in travel direction
             this.renderer.drawRoad(
                 exitEdge, centerCol,
-                exitEdge + maxSafe, centerCol,
+                exitEdge + (sign * maxSafe), centerCol,
                 blockSize,
                 GameConfig.debug.bridgeZoneColor
             );
 
             // Draw safe zone outline (dark green) from minSafe to maxSafe
             this.renderer.drawRoadOutline(
-                exitEdge + minSafe, centerCol,
-                exitEdge + maxSafe, centerCol,
+                exitEdge + (sign * minSafe), centerCol,
+                exitEdge + (sign * maxSafe), centerCol,
                 blockSize,
                 GameConfig.debug.bridgeSafeZoneOutlineColor,
                 GameConfig.debug.bridgeSafeZoneOutlineWidth

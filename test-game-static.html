@@ -92,16 +92,21 @@
             constructor() {
                 this.canvas = document.getElementById('gameCanvas');
 
-                // Use same viewport as main game
-                this.viewport = this.createViewportForCanvas(800, 600);
-
-                this.renderer = new Renderer(this.canvas, this.viewport);
-                this.debug = new DebugRenderer(this.renderer);
-
-                // Load the level
+                // Load the level first
                 this.level = createExampleLevel();
                 this.course = this.level.course;
                 this.islands = this.level.islands;
+
+                // Calculate viewport bounds and canvas size
+                const {viewport, canvasWidth, canvasHeight} = this.createViewportAndCanvasSize();
+
+                // Set canvas dimensions
+                this.canvas.width = canvasWidth;
+                this.canvas.height = canvasHeight;
+
+                this.viewport = viewport;
+                this.renderer = new Renderer(this.canvas, this.viewport);
+                this.debug = new DebugRenderer(this.renderer);
 
                 // Car state (at start)
                 this.carRow = 1;
@@ -111,13 +116,37 @@
                 this.render();
             }
 
-            createViewportForCanvas(canvasWidth, canvasHeight) {
+            createViewportAndCanvasSize() {
                 const blockSize = GameConfig.grid.blockSize;
-                const minRow = -1;
-                const maxRow = 11;
-                const minCol = -1;
-                const maxCol = 9;
-                return new Viewport(minRow, maxRow, minCol, maxCol, blockSize, canvasWidth, canvasHeight);
+
+                // Calculate bounds from islands to show full course
+                let minRow = Infinity;
+                let maxRow = -Infinity;
+                let minCol = Infinity;
+                let maxCol = -Infinity;
+
+                this.islands.forEach(([row, col, width, height]) => {
+                    minRow = Math.min(minRow, row);
+                    maxRow = Math.max(maxRow, row + height);
+                    minCol = Math.min(minCol, col);
+                    maxCol = Math.max(maxCol, col + width);
+                });
+
+                // Add 1 unit margin on all sides
+                minRow -= 1;
+                maxRow += 1;
+                minCol -= 1;
+                maxCol += 1;
+
+                // Calculate canvas size needed to fit this viewport
+                const rowSpan = maxRow - minRow;
+                const colSpan = maxCol - minCol;
+                const canvasWidth = Math.ceil(colSpan * blockSize);
+                const canvasHeight = Math.ceil(rowSpan * blockSize);
+
+                const viewport = new Viewport(minRow, maxRow, minCol, maxCol, blockSize, canvasWidth, canvasHeight);
+
+                return {viewport, canvasWidth, canvasHeight};
             }
 
             render() {

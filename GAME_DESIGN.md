@@ -44,9 +44,11 @@ Starting at (1,1):
 4. Span 3: +2 columns to (9,7) → Island 3 with turn (stays on same island)
 5. Span 4: +4 rows to (13,7) → Island 4 with turn
 6. Span 5: +3 columns to (13,10) → Island 5 with turn
-7. Span 6: -4 rows to (9,10) → Island 6 (negative span, final destination)
+7. Span 6: -4 rows to (9,10) → Island 6 with turn (negative span)
+8. Span 7: -3 rows to (6,10) → Island 7 with turn (negative span)
+9. Span 8: +3 columns to (6,13) → Island 7 (stays on same island, final destination)
 
-This course requires 7 islands (numbered 0-6): Island 0 at the start, then one island at the end of each bridge-crossing span. Note that spans 2 and 3 both occur on Island 3 (two junctions, no bridge between them).
+This course requires 8 islands (numbered 0-7): Island 0 at the start, then one island at the end of each bridge-crossing span. Note that spans 2-3 both occur on Island 3, and spans 7-8 both occur on Island 7 (multiple junctions, no bridge between them).
 
 ## Visual Style
 
@@ -306,22 +308,24 @@ All roads are rendered using overlapping rectangles. The unified rectangle-based
 **Case 2: One junction (turn to bridge)**
 - Two overlapping rectangles forming an L-shape
 - Entry and exit directions differ
-- Rectangle 1: Entry edge to junction+0.5 (in entry direction)
+- Rectangle 1: Entry edge to junction±0.5 (in entry direction)
   - Extends 0.5 units past junction for proper overlap
+  - **Direction-aware**: Positive spans extend `+0.5`, negative spans extend `-0.5`
 - Rectangle 2: Junction to exit edge (in exit direction)
 - Example: Island 1 with column→row
-  - Rect 1: column 4 to 5.5, centered at row 1 (column direction)
+  - Rect 1: column 4 to 5.5, centered at row 1 (column direction, positive)
   - Rect 2: row 1 to 2, centered at column 5 (row direction)
 
 **Case 3: Two junctions (turn to turn)**
 - Three overlapping rectangles forming an S or Z shape
 - Both junctions occur on the same island (no bridge between)
-- Rectangle 1: Entry edge to junction1+0.5 (in entry direction)
-- Rectangle 2: Junction1 to junction2+0.5 (in middle direction)
+- Rectangle 1: Entry edge to junction1±0.5 (in entry direction)
+- Rectangle 2: Junction1 to junction2±0.5 (in middle direction)
+  - Both use **direction-aware extension**: `sign * 0.5`
 - Rectangle 3: Junction2 to exit edge (in exit direction)
 - Example: Island 3 with row→column→row
-  - Rect 1: row 8 to 9.5, centered at column 5 (row direction)
-  - Rect 2: column 5 to 7.5, centered at row 9 (column direction)
+  - Rect 1: row 8 to 9.5, centered at column 5 (row direction, positive)
+  - Rect 2: column 5 to 7.5, centered at row 9 (column direction, positive)
   - Rect 3: row 9 to 10, centered at column 7 (row direction)
 
 **Implementation:**
@@ -331,13 +335,14 @@ All roads are rendered using overlapping rectangles. The unified rectangle-based
   - **Special cases for start/end islands:**
     - Island 0 (start): Road extends from near edge to first junction (implies continuation off-screen)
     - Last island: Road extends from last junction to far edge (implies continuation off-screen)
-  - Returns array of segments with start/end positions and directions
+  - Returns array of segments with start/end positions, directions, **and sign** (`+1` or `-1`)
 - `Renderer.drawIslandRoadFromSpans()` renders roads systematically based on junction types
   - Detects straight-ahead: all segments same direction → merge into single rectangle
-  - Detects turns: direction changes → separate rectangles with +0.5 extension at turns
+  - Detects turns: direction changes → separate rectangles with direction-aware extension at turns
+  - **Extension calculation**: `segment.sign * 0.5` (positive = `+0.5`, negative = `-0.5`)
   - Number of rectangles = number of direction changes + 1
 - Road rendering is entirely derived from Course definition (no manual configuration needed)
-- The +0.5 extension ensures seamless visual overlap at corners when there's a turn
+- The ±0.5 extension ensures seamless visual overlap at corners when there's a turn
 
 ### Rendering
 - HTML5 Canvas for all graphics
@@ -409,6 +414,10 @@ Debug utilities are separated into `js/debug.js` and render as overlays on top o
 - Toggle via `showBridgeZones` flag in game.js (disabled by default in game)
 - Always enabled in test suite for validation verification
 - Rendered using `Renderer.drawRoad()` for filled areas and `Renderer.drawRoadOutline()` for safe zone boundaries
+- **Direction-aware rendering**: Bridge zones extend in the correct direction (positive or negative) based on span travel direction
+  - `DebugRenderer.drawBridgeZone()` calculates sign from bridge start/end positions
+  - Exit edge chosen based on sign: positive uses far edge, negative uses near edge
+  - Zone extends as `exitEdge + (sign * length)` for correct directionality
 
 All debug features render on a separate layer above game graphics.
 
