@@ -132,9 +132,10 @@ class Renderer {
      * @param {number} endRow - ending row of the road centerline
      * @param {number} endCol - ending column of the road centerline
      * @param {number} blockSize - size of each grid square in pixels
+     * @param {string} color - optional color override (defaults to road color)
      */
-    drawRoad(startRow, startCol, endRow, endCol, blockSize) {
-        const roadColor = GameConfig.road.color;
+    drawRoad(startRow, startCol, endRow, endCol, blockSize, color = null) {
+        const roadColor = color || GameConfig.road.color;
         const halfWidth = GameConfig.road.halfWidth;
 
         // Determine if road runs in row or column direction
@@ -178,6 +179,65 @@ class Renderer {
             this.ctx.lineTo(bottomLeft.x * blockSize, bottomLeft.y * blockSize);
             this.ctx.closePath();
             this.ctx.fill();
+        }
+    }
+
+    /**
+     * Draw a road outline (stroked, not filled)
+     * @param {number} startRow - starting row of the road centerline
+     * @param {number} startCol - starting column of the road centerline
+     * @param {number} endRow - ending row of the road centerline
+     * @param {number} endCol - ending column of the road centerline
+     * @param {number} blockSize - size of each grid square in pixels
+     * @param {string} color - stroke color
+     * @param {number} lineWidth - stroke width
+     */
+    drawRoadOutline(startRow, startCol, endRow, endCol, blockSize, color, lineWidth) {
+        const halfWidth = GameConfig.road.halfWidth;
+
+        // Determine if road runs in row or column direction
+        if (startCol === endCol) {
+            // Road runs in row direction (centerline at constant column)
+            const centerCol = startCol;
+            const minRow = Math.min(startRow, endRow);
+            const maxRow = Math.max(startRow, endRow);
+
+            // Road extends from centerCol - 0.5 to centerCol + 0.5
+            const topLeft = this.gameToScreen(minRow, centerCol - halfWidth, 0);
+            const topRight = this.gameToScreen(minRow, centerCol + halfWidth, 0);
+            const bottomRight = this.gameToScreen(maxRow, centerCol + halfWidth, 0);
+            const bottomLeft = this.gameToScreen(maxRow, centerCol - halfWidth, 0);
+
+            this.ctx.strokeStyle = color;
+            this.ctx.lineWidth = lineWidth;
+            this.ctx.beginPath();
+            this.ctx.moveTo(topLeft.x * blockSize, topLeft.y * blockSize);
+            this.ctx.lineTo(topRight.x * blockSize, topRight.y * blockSize);
+            this.ctx.lineTo(bottomRight.x * blockSize, bottomRight.y * blockSize);
+            this.ctx.lineTo(bottomLeft.x * blockSize, bottomLeft.y * blockSize);
+            this.ctx.closePath();
+            this.ctx.stroke();
+        } else {
+            // Road runs in column direction (centerline at constant row)
+            const centerRow = startRow;
+            const minCol = Math.min(startCol, endCol);
+            const maxCol = Math.max(startCol, endCol);
+
+            // Road extends from centerRow - 0.5 to centerRow + 0.5
+            const topLeft = this.gameToScreen(centerRow - halfWidth, minCol, 0);
+            const topRight = this.gameToScreen(centerRow - halfWidth, maxCol, 0);
+            const bottomRight = this.gameToScreen(centerRow + halfWidth, maxCol, 0);
+            const bottomLeft = this.gameToScreen(centerRow + halfWidth, minCol, 0);
+
+            this.ctx.strokeStyle = color;
+            this.ctx.lineWidth = lineWidth;
+            this.ctx.beginPath();
+            this.ctx.moveTo(topLeft.x * blockSize, topLeft.y * blockSize);
+            this.ctx.lineTo(topRight.x * blockSize, topRight.y * blockSize);
+            this.ctx.lineTo(bottomRight.x * blockSize, bottomRight.y * blockSize);
+            this.ctx.lineTo(bottomLeft.x * blockSize, bottomLeft.y * blockSize);
+            this.ctx.closePath();
+            this.ctx.stroke();
         }
     }
 

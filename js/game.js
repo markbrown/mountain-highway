@@ -16,6 +16,7 @@ class Game {
         // Debug options
         this.showDebugGrid = GameConfig.debug.showGrid;
         this.showIslandNumbers = GameConfig.debug.showIslandNumbers;
+        this.showBridgeZones = GameConfig.debug.showBridgeZones;
 
         // Create the example course
         this.course = createExampleCourse();
@@ -268,6 +269,11 @@ class Game {
             // Step 3: Draw island outlines (black lines)
             this.renderer.drawIslandOutlines(corners);
         });
+
+        // Draw debug bridge zones (optional - shows min/max safe bridge lengths)
+        if (this.showBridgeZones) {
+            this.debug.drawBridgeZones(this.course, islandData, blockSize);
+        }
 
         // Bridge positions: [baseRow/Col for road center, edgePosition, direction]
         const bridgePositions = [

@@ -78,4 +78,110 @@ class DebugRenderer {
         this.ctx.textBaseline = 'middle';
         this.ctx.fillText(number.toString(), centerX, centerY);
     }
+
+    /**
+     * Draw debug bridge zones showing min/max safe bridge lengths
+     * @param {Course} course - The course object
+     * @param {Array} islands - Array of island data [row, col, width, height]
+     * @param {number} blockSize - size of each grid square in pixels
+     */
+    drawBridgeZones(course, islands, blockSize) {
+        const spanDetails = course.getSpanDetails();
+        const roadWidth = GameConfig.road.width;
+
+        // Track which islands we've visited
+        let currentIsland = 0;
+        let previousJunction = { row: course.startRow, col: course.startCol };
+
+        spanDetails.forEach((span, spanIndex) => {
+            const spanStart = { row: span.startRow, col: span.startCol };
+            const spanEnd = { row: span.endRow, col: span.endCol };
+
+            // Find which island the junction is on
+            const junctionIsland = CourseValidator.findIslandAt(spanEnd.row, spanEnd.col, islands);
+
+            // If junction is on a different island, we need a bridge
+            if (junctionIsland !== null && junctionIsland !== currentIsland) {
+                const startIsland = islands[currentIsland];
+                const endIsland = islands[junctionIsland];
+
+                // Calculate safe bridge range
+                const bridgeRange = CourseValidator.calculateBridgeRange(
+                    spanStart, spanEnd, span.direction, startIsland, endIsland
+                );
+
+                if (bridgeRange.needsBridge) {
+                    // Draw the bridge zone overlays
+                    this.drawBridgeZone(
+                        spanStart, span.direction, startIsland,
+                        bridgeRange.minSafe, bridgeRange.maxSafe,
+                        roadWidth, blockSize
+                    );
+                }
+
+                // Move to the new island
+                currentIsland = junctionIsland;
+            }
+
+            previousJunction = spanEnd;
+        });
+    }
+
+    /**
+     * Draw a single bridge zone with min/max safe regions
+     * @param {Object} spanStart - {row, col} where bridge starts
+     * @param {string} direction - 'row' or 'column'
+     * @param {Array} startIsland - Island data where bridge starts
+     * @param {number} minSafe - Minimum safe bridge length
+     * @param {number} maxSafe - Maximum safe bridge length
+     * @param {number} roadWidth - Width of the road
+     * @param {number} blockSize - size of each grid square in pixels
+     */
+    drawBridgeZone(spanStart, direction, startIsland, minSafe, maxSafe, roadWidth, blockSize) {
+        const [startRow, startCol, startWidth, startHeight] = startIsland;
+
+        if (direction === Direction.COLUMN) {
+            // Bridge extends in column direction (horizontal in screen space)
+            const exitEdge = startCol + startWidth;
+            const centerRow = spanStart.row;
+
+            // Draw full bridge zone (white fill) from exit edge to maxSafe
+            this.renderer.drawRoad(
+                centerRow, exitEdge,
+                centerRow, exitEdge + maxSafe,
+                blockSize,
+                GameConfig.debug.bridgeZoneColor
+            );
+
+            // Draw safe zone outline (dark green) from minSafe to maxSafe
+            this.renderer.drawRoadOutline(
+                centerRow, exitEdge + minSafe,
+                centerRow, exitEdge + maxSafe,
+                blockSize,
+                GameConfig.debug.bridgeSafeZoneOutlineColor,
+                GameConfig.debug.bridgeSafeZoneOutlineWidth
+            );
+        } else {
+            // Bridge extends in row direction (vertical in screen space)
+            const exitEdge = startRow + startHeight;
+            const centerCol = spanStart.col;
+
+            // Draw full bridge zone (white fill) from exit edge to maxSafe
+            this.renderer.drawRoad(
+                exitEdge, centerCol,
+                exitEdge + maxSafe, centerCol,
+                blockSize,
+                GameConfig.debug.bridgeZoneColor
+            );
+
+            // Draw safe zone outline (dark green) from minSafe to maxSafe
+            this.renderer.drawRoadOutline(
+                exitEdge + minSafe, centerCol,
+                exitEdge + maxSafe, centerCol,
+                blockSize,
+                GameConfig.debug.bridgeSafeZoneOutlineColor,
+                GameConfig.debug.bridgeSafeZoneOutlineWidth
+            );
+        }
+    }
 }

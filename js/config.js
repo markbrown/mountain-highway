@@ -57,6 +57,7 @@ const GameConfig = {
     debug: {
         showGrid: true,
         showIslandNumbers: false,
+        showBridgeZones: false,
         gridOpacity: 0.15,
         gridEvery4Opacity: 0.25,
         gridEvery4Color: 'rgba(0, 0, 255, 0.25)', // Blue
@@ -64,6 +65,9 @@ const GameConfig = {
         gridEvery4Width: 2,
         gridRegularWidth: 1,
         islandNumberColor: 'rgba(255, 255, 255, 0.8)',
-        islandNumberFont: 'bold 24px Arial'
+        islandNumberFont: 'bold 24px Arial',
+        bridgeZoneColor: 'rgba(255, 255, 255, 0.3)', // Translucent white for full bridge
+        bridgeSafeZoneOutlineColor: '#1B5E20',       // Dark green outline for safe zone
+        bridgeSafeZoneOutlineWidth: 2
     }
 };

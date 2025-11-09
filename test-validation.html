@@ -165,6 +165,9 @@
                     renderer.drawIslandOutlines(corners);
                 });
 
+                // Draw bridge zones (min/max safe bridge lengths)
+                debug.drawBridgeZones(course, islands, blockSize);
+
                 // Draw course overlay (junctions and spans in yellow)
                 this.drawCourseOverlay(renderer, course, blockSize);
 

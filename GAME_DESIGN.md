@@ -352,7 +352,21 @@ Debug utilities are separated into `js/debug.js` and render as overlays on top o
 - Toggle via `showIslandNumbers` flag in game.js
 - Useful for identifying islands during development and debugging
 
-Both debug features are disabled by default and render on a separate layer above all game graphics.
+**Bridge Zones (Min/Max Safe Lengths):**
+- Visual overlay showing valid bridge placement regions
+- Two-layer visualization:
+  - **White filled area**: Full possible bridge range (from island edge to maximum safe length)
+  - **Dark green outline**: Safe zone boundaries (minimum to maximum safe bridge length)
+- The white-only region (if visible) indicates bridge lengths that are too short
+- The green-outlined region shows valid bridge lengths that will correctly reach the next island
+- Calculations based on `CourseValidator.calculateBridgeRange()`:
+  - Minimum safe: Must reach entry edge of next island
+  - Maximum safe: Can extend to junction or opposite edge of next island
+- Toggle via `showBridgeZones` flag in game.js (disabled by default in game)
+- Always enabled in test suite for validation verification
+- Rendered using `Renderer.drawRoad()` for filled areas and `Renderer.drawRoadOutline()` for safe zone boundaries
+
+All debug features render on a separate layer above game graphics.
 
 ### Test Suite Visualization
 The validation test suite (`test-validation.html`) provides comprehensive debugging visualizations:
@@ -364,6 +378,9 @@ The validation test suite (`test-validation.html`) provides comprehensive debugg
 
 **Visual Debugging Aids:**
 - **Grid lines**: Blue grid showing row/column boundaries (starting from 0,0)
+- **Bridge zones**: White filled areas with dark green outlined safe zones (always enabled)
+  - Shows minimum and maximum safe bridge lengths for each gap
+  - Helps verify that bridges are correctly sized for the island spacing
 - **Course overlay**: Yellow dots and lines showing the defined course path
   - Yellow dots mark start position and all junction points
   - Yellow lines connect consecutive positions along the course
