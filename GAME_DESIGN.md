@@ -415,13 +415,17 @@ The validation test suite (`test-validation.html`) provides comprehensive debugg
 
 ### Medium Priority
 4. **State machine refactor**: Replace nested setTimeout callbacks with declarative path segment system.
-5. **Separate renderer concerns**: Pass road configuration type instead of checking island debug numbers.
+   - Current implementation uses complex nested setTimeout chains in `advanceToNextSegment()`
+   - Could use a segment queue with state transitions for cleaner flow
+5. ~~**Separate renderer concerns**: Pass road configuration data instead of hardcoding.~~ ✅ **Completed** - Now uses `Course.getRoadSegmentsForIsland()` and `Renderer.drawIslandRoadFromSpans()`
 6. **Debug mode enhancements**: Add overlays for junction markers, car target position, current game state, road segment boundaries.
 
 ### Low Priority
-7. **Remove unused code**: Clean up `drawIsoCube()` method or move to utilities.
-8. **Consistent terminology enforcement**: Audit code comments and variable names for terminology consistency.
-9. **Decouple systems**: Create separate PathController, BridgeController, GameController for better modularity.
+7. ~~**Remove unused code**: Clean up old rendering methods now that Course-based rendering is implemented.~~ ✅ **Completed** - Removed obsolete methods:
+   - `drawIslandRoad()` - replaced by `drawIslandRoadFromSpans()`
+   - `drawComplexRoadTwoTurns()` - replaced by `drawIslandRoadFromSpans()`
+   - `drawIsoCube()` - legacy method, not used
+8. **Decouple systems**: Create separate PathController, BridgeController, GameController for better modularity.
 
 ## Future Features to Consider
 
@@ -440,19 +444,25 @@ The validation test suite (`test-validation.html`) provides comprehensive debugg
 - ✅ Rectangular islands with configurable width and height
 - ✅ Multiple islands with configurable gaps (row and column)
 - ✅ Proper edge rendering (visible edges only)
-- ✅ Correct render ordering (highest row to lowest row, three-phase per island)
+- ✅ Correct render ordering using `row + col` distance metric for depth sorting
 - ✅ Walls extending off-screen to simulate deep cliffs
 - ✅ Course structure (spans, directions, junctions)
 - ✅ Debug utilities separated into dedicated module
-- ✅ Road rendering on islands (straight roads and L-shaped turns)
+- ✅ Road rendering using Course-based junction type analysis
+  - Automatically determines rectangle count based on direction changes
+  - Straight-ahead junctions render as single rectangle
+  - Turn junctions render with +0.5 extension for overlap
 - ✅ Systematic road geometry calculation for all junction types
 - ✅ Bridge rendering system (vertical, rotating, horizontal)
-- ✅ Bridge animation (growth, slam down, seamless integration with road)
+- ✅ Bridge animation with correct timing (hold time = target length / growth rate)
 - ✅ Car sprite rendering (0.6×0.4 units, red with black outline)
 - ✅ Car movement along course path
 - ✅ Automatic car stopping at island edges
 - ✅ Car turning at junctions (instantaneous direction change)
-- ✅ Coordinated animation sequence (car movement + bridge building)
+- ✅ Coordinated animation sequence reaching final junction
+- ✅ Viewport system separating grid plane from view window
+- ✅ Course validation with 10 test cases
+- ✅ Test suite with visual debugging (grid, course overlay, island details)
 
 ### Planned
 - ⏳ Mouse input handling for bridge building
