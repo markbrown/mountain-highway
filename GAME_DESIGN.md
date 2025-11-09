@@ -363,8 +363,11 @@ Debug utilities are separated into `js/debug.js` and render as overlays on top o
 - The white-only region (if visible) indicates bridge lengths that are too short
 - The green-outlined region shows valid bridge lengths that will correctly reach the next island
 - Calculations based on `CourseValidator.calculateBridgeRange()`:
-  - Minimum safe: Must reach entry edge of next island
-  - Maximum safe: Can extend to junction or opposite edge of next island
+  - **Minimum safe**: Must reach entry edge of next island (gap distance)
+  - **Maximum safe**: Depends on junction type at the bridge end:
+    - **Turn junction** (left/right): Can extend 0.5 units past junction
+    - **Straight junction or end of course**: Can extend 1.0 unit past junction
+    - Rationale: Straight junctions need more overlap for visual continuity
 - Toggle via `showBridgeZones` flag in game.js (disabled by default in game)
 - Always enabled in test suite for validation verification
 - Rendered using `Renderer.drawRoad()` for filled areas and `Renderer.drawRoadOutline()` for safe zone boundaries
@@ -438,7 +441,13 @@ The validation test suite (`test-validation.html`) provides comprehensive debugg
    - Current implementation uses complex nested setTimeout chains in `advanceToNextSegment()`
    - Could use a segment queue with state transitions for cleaner flow
 5. ~~**Separate renderer concerns**: Pass road configuration data instead of hardcoding.~~ ✅ **Completed** - Now uses `Course.getRoadSegmentsForIsland()` and `Renderer.drawIslandRoadFromSpans()`
-6. **Debug mode enhancements**: Add overlays for junction markers, car target position, current game state, road segment boundaries.
+6. ~~**Bridge abstraction**: Extract bridge detection and calculation logic into reusable structures.~~ ✅ **Completed**
+   - Created `Bridge` class to encapsulate bridge data (span index, islands, positions, direction, junction type)
+   - Added `Course.getBridges(islands)` as single source of truth for finding bridges
+   - Added `Bridge.calculateRange(islands)` to encapsulate safe range calculation
+   - Benefits: Eliminates duplication between debug and validation, simpler consumer code, easier to test
+   - Simplified `DebugRenderer.drawBridgeZones()` and extracted `CourseValidator.validateBridges()`
+7. **Debug mode enhancements**: Add overlays for junction markers, car target position, current game state, road segment boundaries.
 
 ### Low Priority
 7. ~~**Remove unused code**: Clean up old rendering methods now that Course-based rendering is implemented.~~ ✅ **Completed** - Removed obsolete methods:

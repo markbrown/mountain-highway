@@ -86,44 +86,24 @@ class DebugRenderer {
      * @param {number} blockSize - size of each grid square in pixels
      */
     drawBridgeZones(course, islands, blockSize) {
-        const spanDetails = course.getSpanDetails();
+        const bridges = course.getBridges(islands);
         const roadWidth = GameConfig.road.width;
 
-        // Track which islands we've visited
-        let currentIsland = 0;
-        let previousJunction = { row: course.startRow, col: course.startCol };
+        bridges.forEach(bridge => {
+            const range = bridge.calculateRange(islands);
 
-        spanDetails.forEach((span, spanIndex) => {
-            const spanStart = { row: span.startRow, col: span.startCol };
-            const spanEnd = { row: span.endRow, col: span.endCol };
-
-            // Find which island the junction is on
-            const junctionIsland = CourseValidator.findIslandAt(spanEnd.row, spanEnd.col, islands);
-
-            // If junction is on a different island, we need a bridge
-            if (junctionIsland !== null && junctionIsland !== currentIsland) {
-                const startIsland = islands[currentIsland];
-                const endIsland = islands[junctionIsland];
-
-                // Calculate safe bridge range
-                const bridgeRange = CourseValidator.calculateBridgeRange(
-                    spanStart, spanEnd, span.direction, startIsland, endIsland
+            if (range.needsBridge) {
+                // Draw the bridge zone overlays
+                this.drawBridgeZone(
+                    bridge.startPos,
+                    bridge.direction,
+                    islands[bridge.startIsland],
+                    range.minSafe,
+                    range.maxSafe,
+                    roadWidth,
+                    blockSize
                 );
-
-                if (bridgeRange.needsBridge) {
-                    // Draw the bridge zone overlays
-                    this.drawBridgeZone(
-                        spanStart, span.direction, startIsland,
-                        bridgeRange.minSafe, bridgeRange.maxSafe,
-                        roadWidth, blockSize
-                    );
-                }
-
-                // Move to the new island
-                currentIsland = junctionIsland;
             }
-
-            previousJunction = spanEnd;
         });
     }
 

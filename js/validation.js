@@ -109,9 +109,10 @@ class CourseValidator {
      * @param {string} direction - 'row' or 'column'
      * @param {Array} startIsland - Island data where span starts
      * @param {Array} endIsland - Island data where span ends
+     * @param {string} junctionType - JunctionType (left, right, straight, or null for end)
      * @returns {Object} {minSafe, maxSafe, needsBridge}
      */
-    static calculateBridgeRange(spanStart, spanEnd, direction, startIsland, endIsland) {
+    static calculateBridgeRange(spanStart, spanEnd, direction, startIsland, endIsland, junctionType = null) {
         // Check if we need a bridge (different islands)
         const needsBridge = startIsland !== endIsland;
 
@@ -135,15 +136,18 @@ class CourseValidator {
             // Minimum: must reach entry edge of next island
             minSafe = entryEdge - exitEdge;
 
-            // Maximum: can extend to junction or opposite edge
-            // If junction is at entry edge, max goes to opposite edge
-            // If junction is inside island, max goes to junction
+            // Maximum: depends on junction type
+            // - Turn junction: can extend 0.5 units past junction
+            // - Straight junction or end of course: can extend 1 unit past junction
+            const isStraightOrEnd = (junctionType === JunctionType.STRAIGHT || junctionType === null);
+            const extensionPast = isStraightOrEnd ? 1.0 : 0.5;
+
             if (spanEnd.col === entryEdge) {
                 // Junction at entry edge - can extend across entire island
                 maxSafe = (endCol + endWidth) - exitEdge;
             } else {
-                // Junction inside island - max extends to junction
-                maxSafe = spanEnd.col - exitEdge;
+                // Junction inside island - max extends past junction based on type
+                maxSafe = (spanEnd.col + extensionPast) - exitEdge;
             }
         } else {
             // Bridge extends in row direction
@@ -154,10 +158,14 @@ class CourseValidator {
 
             minSafe = entryEdge - exitEdge;
 
+            // Maximum: depends on junction type
+            const isStraightOrEnd = (junctionType === JunctionType.STRAIGHT || junctionType === null);
+            const extensionPast = isStraightOrEnd ? 1.0 : 0.5;
+
             if (spanEnd.row === entryEdge) {
                 maxSafe = (endRow + endHeight) - exitEdge;
             } else {
-                maxSafe = spanEnd.row - exitEdge;
+                maxSafe = (spanEnd.row + extensionPast) - exitEdge;
             }
         }
 
@@ -185,17 +193,12 @@ class CourseValidator {
             }
         }
 
-        // Track current position and island
-        let currentRow = course.startRow;
-        let currentCol = course.startCol;
-        let currentIslandIndex = startIsland;
-
-        // Validate each span
+        // Check 2: Validate each junction
         spanDetails.forEach((span, spanIndex) => {
             const junctionRow = span.endRow;
             const junctionCol = span.endCol;
 
-            // Check 2: Junction must be on an island and in its interior
+            // Junction must be on an island and in its interior
             const junctionIslandIndex = this.findIslandAt(junctionRow, junctionCol, islands);
 
             if (junctionIslandIndex === null) {
@@ -211,66 +214,67 @@ class CourseValidator {
                         spanIndex
                     ));
                 }
+            }
+        });
 
-                // Check bridge requirements (3, 4, 5) if this span crosses to a different island
-                if (currentIslandIndex !== null && junctionIslandIndex !== currentIslandIndex) {
-                    const bridgeRange = this.calculateBridgeRange(
-                        { row: currentRow, col: currentCol },
-                        { row: junctionRow, col: junctionCol },
-                        span.direction,
-                        islands[currentIslandIndex],
-                        islands[junctionIslandIndex]
-                    );
+        // Check 3, 4, 5: Validate bridges
+        errors.push(...this.validateBridges(course, islands));
 
-                    // Check 3: Minimum bridge size must be at least 1 unit
-                    if (bridgeRange.minSafe < 1) {
-                        errors.push(new ValidationError(
-                            `Gap too small: minimum safe bridge size ${bridgeRange.minSafe.toFixed(2)} is less than 1 unit`,
-                            spanIndex
-                        ));
-                    }
+        return errors;
+    }
 
-                    // Check 4: Maximum bridge size must land on the next island
-                    const [nextRow, nextCol, nextWidth, nextHeight] = islands[junctionIslandIndex];
-                    let maxBridgeEnd;
+    /**
+     * Check 3, 4, 5: Validate bridge requirements
+     */
+    static validateBridges(course, islands) {
+        const errors = [];
+        const bridges = course.getBridges(islands);
 
-                    if (span.direction === Direction.COLUMN) {
-                        const [startRow, startCol, startWidth, startHeight] = islands[currentIslandIndex];
-                        maxBridgeEnd = startCol + startWidth + bridgeRange.maxSafe;
+        bridges.forEach(bridge => {
+            const range = bridge.calculateRange(islands);
 
-                        if (maxBridgeEnd < nextCol || maxBridgeEnd > nextCol + nextWidth) {
-                            errors.push(new ValidationError(
-                                `Maximum bridge size ${bridgeRange.maxSafe.toFixed(2)} extends to column ${maxBridgeEnd.toFixed(2)}, which is outside next island (columns ${nextCol}-${nextCol + nextWidth})`,
-                                spanIndex
-                            ));
-                        }
-                    } else {
-                        const [startRow, startCol, startWidth, startHeight] = islands[currentIslandIndex];
-                        maxBridgeEnd = startRow + startHeight + bridgeRange.maxSafe;
+            // Check 3: Minimum bridge size must be at least 1 unit
+            if (range.minSafe < 1) {
+                errors.push(new ValidationError(
+                    `Gap too small: minimum safe bridge size ${range.minSafe.toFixed(2)} is less than 1 unit`,
+                    bridge.spanIndex
+                ));
+            }
 
-                        if (maxBridgeEnd < nextRow || maxBridgeEnd > nextRow + nextHeight) {
-                            errors.push(new ValidationError(
-                                `Maximum bridge size ${bridgeRange.maxSafe.toFixed(2)} extends to row ${maxBridgeEnd.toFixed(2)}, which is outside next island (rows ${nextRow}-${nextRow + nextHeight})`,
-                                spanIndex
-                            ));
-                        }
-                    }
+            // Check 4: Maximum bridge size must land on the next island
+            const [nextRow, nextCol, nextWidth, nextHeight] = islands[bridge.endIsland];
+            let maxBridgeEnd;
 
-                    // Check 5: Tolerance (difference between min and max) must be at least 1 unit
-                    const tolerance = bridgeRange.maxSafe - bridgeRange.minSafe;
-                    if (tolerance < 1) {
-                        errors.push(new ValidationError(
-                            `Bridge tolerance ${tolerance.toFixed(2)} is less than 1 unit (min: ${bridgeRange.minSafe.toFixed(2)}, max: ${bridgeRange.maxSafe.toFixed(2)})`,
-                            spanIndex
-                        ));
-                    }
+            if (bridge.direction === Direction.COLUMN) {
+                const [startRow, startCol, startWidth, startHeight] = islands[bridge.startIsland];
+                maxBridgeEnd = startCol + startWidth + range.maxSafe;
+
+                if (maxBridgeEnd < nextCol || maxBridgeEnd > nextCol + nextWidth) {
+                    errors.push(new ValidationError(
+                        `Maximum bridge size ${range.maxSafe.toFixed(2)} extends to column ${maxBridgeEnd.toFixed(2)}, which is outside next island (columns ${nextCol}-${nextCol + nextWidth})`,
+                        bridge.spanIndex
+                    ));
+                }
+            } else {
+                const [startRow, startCol, startWidth, startHeight] = islands[bridge.startIsland];
+                maxBridgeEnd = startRow + startHeight + range.maxSafe;
+
+                if (maxBridgeEnd < nextRow || maxBridgeEnd > nextRow + nextHeight) {
+                    errors.push(new ValidationError(
+                        `Maximum bridge size ${range.maxSafe.toFixed(2)} extends to row ${maxBridgeEnd.toFixed(2)}, which is outside next island (rows ${nextRow}-${nextRow + nextHeight})`,
+                        bridge.spanIndex
+                    ));
                 }
             }
 
-            // Update current position and island for next iteration
-            currentRow = junctionRow;
-            currentCol = junctionCol;
-            currentIslandIndex = junctionIslandIndex;
+            // Check 5: Tolerance (difference between min and max) must be at least 1 unit
+            const tolerance = range.maxSafe - range.minSafe;
+            if (tolerance < 1) {
+                errors.push(new ValidationError(
+                    `Bridge tolerance ${tolerance.toFixed(2)} is less than 1 unit (min: ${range.minSafe.toFixed(2)}, max: ${range.maxSafe.toFixed(2)})`,
+                    bridge.spanIndex
+                ));
+            }
         });
 
         return errors;

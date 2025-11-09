@@ -24,6 +24,37 @@ class Span {
 }
 
 /**
+ * A bridge represents a gap between two islands that must be crossed
+ */
+class Bridge {
+    constructor(spanIndex, startIsland, endIsland, startPos, endPos, direction, junctionType) {
+        this.spanIndex = spanIndex;      // Index of the span that crosses this bridge
+        this.startIsland = startIsland;  // Island index where bridge starts
+        this.endIsland = endIsland;      // Island index where bridge ends
+        this.startPos = startPos;        // {row, col} start position
+        this.endPos = endPos;            // {row, col} end position (junction)
+        this.direction = direction;      // Direction.COLUMN or Direction.ROW
+        this.junctionType = junctionType; // JunctionType at end of bridge (or null for course end)
+    }
+
+    /**
+     * Calculate the safe bridge length range for this bridge
+     * @param {Array} islands - Array of island data [row, col, width, height]
+     * @returns {Object} {minSafe, maxSafe, needsBridge}
+     */
+    calculateRange(islands) {
+        return CourseValidator.calculateBridgeRange(
+            this.startPos,
+            this.endPos,
+            this.direction,
+            islands[this.startIsland],
+            islands[this.endIsland],
+            this.junctionType
+        );
+    }
+}
+
+/**
  * A course defines the path the car will travel
  */
 class Course {
@@ -217,6 +248,50 @@ class Course {
         });
 
         return segments;
+    }
+
+    /**
+     * Get all bridges in the course
+     * A bridge is created when a span crosses from one island to another
+     *
+     * @param {Array} islands - Array of island data [row, col, width, height]
+     * @returns {Array<Bridge>} Array of Bridge objects
+     */
+    getBridges(islands) {
+        const bridges = [];
+        const spanDetails = this.getSpanDetails();
+
+        // Track current position and island
+        let currentIsland = 0;
+        let currentPos = { row: this.startRow, col: this.startCol };
+
+        spanDetails.forEach((span, spanIndex) => {
+            const spanEnd = { row: span.endRow, col: span.endCol };
+
+            // Find which island the junction is on
+            const junctionIsland = CourseValidator.findIslandAt(spanEnd.row, spanEnd.col, islands);
+
+            // If junction is on a different island, we have a bridge
+            if (junctionIsland !== null && junctionIsland !== currentIsland) {
+                bridges.push(new Bridge(
+                    spanIndex,
+                    currentIsland,
+                    junctionIsland,
+                    currentPos,
+                    spanEnd,
+                    span.direction,
+                    span.junction
+                ));
+
+                // Move to the new island
+                currentIsland = junctionIsland;
+            }
+
+            // Update current position
+            currentPos = spanEnd;
+        });
+
+        return bridges;
     }
 }
 
