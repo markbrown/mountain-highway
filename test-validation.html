@@ -99,10 +99,12 @@
     <div id="test-results"></div>
 
     <script src="js/config.js"></script>
+    <script src="js/viewport.js"></script>
     <script src="js/renderer.js"></script>
     <script src="js/course.js"></script>
     <script src="js/debug.js"></script>
     <script src="js/validation.js"></script>
+    <script src="js/level.js"></script>
     <script>
         // Static course visualizer using Viewport
         class CourseVisualizer {
@@ -385,7 +387,7 @@
                 [0, 4, 2, 2],   // Island 1: After bridge 0
                 [5, 4, 2, 2],   // Island 2: After bridge 1
                 [8, 4, 4, 2],   // Island 3: After bridge 2 (has 2 junctions)
-                [12, 6, 2, 2],  // Island 4: After bridge 3 (final destination)
+                [11, 6, 2, 3],  // Island 4: After bridge 3 (final destination) - 3 rows × 2 cols
             ],
             true
         );

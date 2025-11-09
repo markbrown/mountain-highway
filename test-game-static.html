@@ -83,9 +83,9 @@
     <script src="js/viewport.js"></script>
     <script src="js/course.js"></script>
     <script src="js/validation.js"></script>
+    <script src="js/level.js"></script>
     <script src="js/renderer.js"></script>
     <script src="js/debug.js"></script>
-    <script src="js/courses/example-course.js"></script>
 
     <script>
         // Create static test visualization
@@ -99,37 +99,15 @@
                 this.renderer = new Renderer(this.canvas, this.viewport);
                 this.debug = new DebugRenderer(this.renderer);
 
-                // Create the example course
-                this.course = createExampleCourse();
+                // Load the level
+                this.level = createExampleLevel();
+                this.course = this.level.course;
+                this.islands = this.level.islands;
 
                 // Car state (at start)
                 this.carRow = 1;
                 this.carCol = 1;
                 this.carDirection = 'column';
-
-                // Island data (same as main game)
-                this.islandData = [
-                    [0, 0, 2, 2],      // Island 0: Start
-                    [0, 4, 2, 2],      // Island 1: After bridge 0
-                    [5, 4, 2, 2],      // Island 2: After bridge 1
-                    [8, 4, 4, 2],      // Island 3: After bridge 2
-                    [12, 6, 2, 2],     // Island 4: After bridge 3
-                ];
-
-                // Bridge data (same as main game)
-                this.bridgeSequence = [
-                    { holdTime: 1.25, targetLength: 2.5 }, // Bridge 0: island 0 to 1
-                    { holdTime: 1.75, targetLength: 3.5 }, // Bridge 1: island 1 to 2
-                    { holdTime: 0.75, targetLength: 1.5 }, // Bridge 2: island 2 to 3
-                    { holdTime: 1.25, targetLength: 2.5 }  // Bridge 3: island 3 to 4
-                ];
-
-                this.bridgePositions = [
-                    { baseRow: 1, edgeCol: 2, direction: 'column' },     // Bridge 1
-                    { baseCol: 5, edgeRow: 2, direction: 'row' },        // Bridge 2
-                    { baseCol: 5, edgeRow: 7, direction: 'row' },        // Bridge 3
-                    { baseCol: 7, edgeRow: 10, direction: 'row' }        // Bridge 4
-                ];
 
                 this.render();
             }
@@ -160,20 +138,20 @@
                 const wallHeight = GameConfig.island.wallHeight;
 
                 // Sort islands by rendering order (back to front)
-                const sortedIndices = this.islandData
+                const sortedIndices = this.islands
                     .map((island, idx) => ({island, idx}))
                     .sort((a, b) => b.island[0] - a.island[0])
                     .map(item => item.idx);
 
                 // Render each island
                 sortedIndices.forEach(islandIndex => {
-                    const [row, col, width, height] = this.islandData[islandIndex];
+                    const [row, col, width, height] = this.islands[islandIndex];
 
                     // Draw island colors
                     const corners = this.renderer.drawIslandColors(row, col, width, height, wallHeight, blockSize);
 
                     // Draw road
-                    const roadSegments = this.course.getRoadSegmentsForIsland(islandIndex, this.islandData);
+                    const roadSegments = this.course.getRoadSegmentsForIsland(islandIndex, this.islands);
                     this.renderer.drawIslandRoadFromSpans(row, col, width, height, roadSegments, blockSize);
 
                     // Draw outlines
@@ -181,7 +159,7 @@
                 });
 
                 // Draw bridge zones
-                this.debug.drawBridgeZones(this.course, this.islandData, blockSize);
+                this.debug.drawBridgeZones(this.course, this.islands, blockSize);
 
                 // Draw course overlay (yellow dots and lines)
                 this.drawCourseOverlay();
@@ -190,7 +168,7 @@
                 this.renderer.drawCar(this.carRow, this.carCol, this.carDirection, blockSize);
 
                 // Draw island numbers
-                this.islandData.forEach(([row, col, width, height], islandNum) => {
+                this.islands.forEach(([row, col, width, height], islandNum) => {
                     this.debug.drawIslandNumber(row, col, width, height, islandNum, blockSize);
                 });
 

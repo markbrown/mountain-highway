@@ -307,3 +307,23 @@ function createExampleCourse() {
     course.addSpan(4, Direction.ROW);     // +4 rows to (13,7), end (bridge to island 5)
     return course;
 }
+
+/**
+ * Create the example level (course + islands)
+ * This is the main game configuration
+ */
+function createExampleLevel() {
+    const course = createExampleCourse();
+
+    // Island configuration in course-order
+    // Format: [row, col, width, height] where height×width = rows×columns
+    const islands = [
+        [0, 0, 2, 2],   // Island 0: Start (0 bridges crossed)
+        [0, 4, 2, 2],   // Island 1: After bridge 0 (1 bridge crossed)
+        [5, 4, 2, 2],   // Island 2: After bridge 1 (2 bridges crossed)
+        [8, 4, 4, 2],   // Island 3: After bridge 2 (has 2 junctions)
+        [11, 6, 2, 3],  // Island 4: After bridge 3 (final destination) - 3 rows × 2 cols
+    ];
+
+    return new Level(course, islands);
+}
