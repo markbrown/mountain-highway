@@ -131,6 +131,10 @@ class Course {
      * Each island may have one or more span segments that need to be rendered
      * Segments are clipped to the portion that's actually on the island
      *
+     * Special cases:
+     * - Island 0 (start): Road extends from near edge to first junction
+     * - Last island: Road extends from last junction to far edge
+     *
      * @param {number} islandIndex - Island index (0-based, course-order)
      * @param {Array} islands - Array of island data [row, col, width, height]
      * @returns {Array} Array of road segments: {startRow, startCol, endRow, endCol, direction}
@@ -142,6 +146,9 @@ class Course {
         const [islandRow, islandCol, islandWidth, islandHeight] = islands[islandIndex];
         const islandMaxRow = islandRow + islandHeight;
         const islandMaxCol = islandCol + islandWidth;
+
+        const isStartIsland = (islandIndex === 0);
+        const isEndIsland = (islandIndex === islands.length - 1);
 
         // Find all spans that pass through this island
         spanDetails.forEach((span, idx) => {
@@ -166,6 +173,16 @@ class Course {
                     row: span.endRow,
                     col: Math.min(span.endCol, islandMaxCol)
                 };
+
+                // Special case: extend to edges for start/end islands
+                if (isStartIsland && span.startCol === this.startCol) {
+                    // First span on start island: extend to near edge
+                    segmentStart.col = islandCol;
+                }
+                if (isEndIsland && idx === spanDetails.length - 1) {
+                    // Last span on end island: extend to far edge
+                    segmentEnd.col = islandMaxCol;
+                }
             } else {
                 // Span travels in row direction (column stays constant)
                 // Clip to island row boundaries
@@ -177,6 +194,16 @@ class Course {
                     row: Math.min(span.endRow, islandMaxRow),
                     col: span.endCol
                 };
+
+                // Special case: extend to edges for start/end islands
+                if (isStartIsland && span.startRow === this.startRow) {
+                    // First span on start island: extend to near edge
+                    segmentStart.row = islandRow;
+                }
+                if (isEndIsland && idx === spanDetails.length - 1) {
+                    // Last span on end island: extend to far edge
+                    segmentEnd.row = islandMaxRow;
+                }
             }
 
             // Add the clipped segment

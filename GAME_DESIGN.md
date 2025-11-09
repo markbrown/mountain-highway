@@ -298,6 +298,9 @@ All roads are rendered using overlapping rectangles. The unified rectangle-based
 - `Course.getRoadSegmentsForIsland()` extracts span segments for each island
   - Finds all spans that pass through the island
   - Clips segments to island boundaries
+  - **Special cases for start/end islands:**
+    - Island 0 (start): Road extends from near edge to first junction (implies continuation off-screen)
+    - Last island: Road extends from last junction to far edge (implies continuation off-screen)
   - Returns array of segments with start/end positions and directions
 - `Renderer.drawIslandRoadFromSpans()` renders roads systematically based on junction types
   - Detects straight-ahead: all segments same direction → merge into single rectangle

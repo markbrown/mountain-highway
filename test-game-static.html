@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mountain Highway - Static Test View</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .description {
+            color: #666;
+            margin-bottom: 20px;
+            text-align: center;
+            max-width: 800px;
+        }
+        #gameContainer {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        canvas {
+            border: 2px solid #333;
+            display: block;
+        }
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            border-left: 4px solid #4CAF50;
+        }
+        .info h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .info li {
+            margin: 5px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mountain Highway - Static Test View</h1>
+    <p class="description">
+        Static visualization of the game course with all debug features enabled.
+        This view shows the complete layout without animation, making it easier to understand
+        the course structure, island placement, and bridge zones.
+    </p>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <div class="info">
+        <h3>Debug Features Enabled:</h3>
+        <ul>
+            <li><strong>Grid Lines:</strong> Blue grid showing row/column coordinates</li>
+            <li><strong>Island Numbers:</strong> Course-visit order (0 = start island)</li>
+            <li><strong>Bridge Zones:</strong> White areas with green outlines showing safe bridge lengths</li>
+            <li><strong>Course Path:</strong> Yellow dots (junctions) and lines (spans)</li>
+            <li><strong>Car:</strong> Positioned at start location</li>
+        </ul>
+    </div>
+
+    <!-- Load all game scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/viewport.js"></script>
+    <script src="js/course.js"></script>
+    <script src="js/validation.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/debug.js"></script>
+    <script src="js/courses/example-course.js"></script>
+
+    <script>
+        // Create static test visualization
+        class StaticGameView {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+
+                // Use same viewport as main game
+                this.viewport = this.createViewportForCanvas(800, 600);
+
+                this.renderer = new Renderer(this.canvas, this.viewport);
+                this.debug = new DebugRenderer(this.renderer);
+
+                // Create the example course
+                this.course = createExampleCourse();
+
+                // Car state (at start)
+                this.carRow = 1;
+                this.carCol = 1;
+                this.carDirection = 'column';
+
+                // Island data (same as main game)
+                this.islandData = [
+                    [0, 0, 2, 2],      // Island 0: Start
+                    [0, 4, 2, 2],      // Island 1: After bridge 0
+                    [5, 4, 2, 2],      // Island 2: After bridge 1
+                    [8, 4, 4, 2],      // Island 3: After bridge 2
+                    [12, 6, 2, 2],     // Island 4: After bridge 3
+                ];
+
+                // Bridge data (same as main game)
+                this.bridgeSequence = [
+                    { holdTime: 1.25, targetLength: 2.5 }, // Bridge 0: island 0 to 1
+                    { holdTime: 1.75, targetLength: 3.5 }, // Bridge 1: island 1 to 2
+                    { holdTime: 0.75, targetLength: 1.5 }, // Bridge 2: island 2 to 3
+                    { holdTime: 1.25, targetLength: 2.5 }  // Bridge 3: island 3 to 4
+                ];
+
+                this.bridgePositions = [
+                    { baseRow: 1, edgeCol: 2, direction: 'column' },     // Bridge 1
+                    { baseCol: 5, edgeRow: 2, direction: 'row' },        // Bridge 2
+                    { baseCol: 5, edgeRow: 7, direction: 'row' },        // Bridge 3
+                    { baseCol: 7, edgeRow: 10, direction: 'row' }        // Bridge 4
+                ];
+
+                this.render();
+            }
+
+            createViewportForCanvas(canvasWidth, canvasHeight) {
+                const blockSize = GameConfig.grid.blockSize;
+                const minRow = -1;
+                const maxRow = 11;
+                const minCol = -1;
+                const maxCol = 9;
+                return new Viewport(minRow, maxRow, minCol, maxCol, blockSize, canvasWidth, canvasHeight);
+            }
+
+            render() {
+                this.renderer.clear();
+
+                const blockSize = this.viewport.blockSize;
+
+                // Apply viewport transform
+                this.renderer.ctx.save();
+                const offset = this.viewport.getOffset();
+                this.renderer.ctx.translate(offset.x, offset.y);
+
+                // Draw debug grid
+                this.debug.drawGrid(this.viewport.minRow, this.viewport.maxRow,
+                                  this.viewport.minCol, this.viewport.maxCol, blockSize);
+
+                const wallHeight = GameConfig.island.wallHeight;
+
+                // Sort islands by rendering order (back to front)
+                const sortedIndices = this.islandData
+                    .map((island, idx) => ({island, idx}))
+                    .sort((a, b) => b.island[0] - a.island[0])
+                    .map(item => item.idx);
+
+                // Render each island
+                sortedIndices.forEach(islandIndex => {
+                    const [row, col, width, height] = this.islandData[islandIndex];
+
+                    // Draw island colors
+                    const corners = this.renderer.drawIslandColors(row, col, width, height, wallHeight, blockSize);
+
+                    // Draw road
+                    const roadSegments = this.course.getRoadSegmentsForIsland(islandIndex, this.islandData);
+                    this.renderer.drawIslandRoadFromSpans(row, col, width, height, roadSegments, blockSize);
+
+                    // Draw outlines
+                    this.renderer.drawIslandOutlines(corners);
+                });
+
+                // Draw bridge zones
+                this.debug.drawBridgeZones(this.course, this.islandData, blockSize);
+
+                // Draw course overlay (yellow dots and lines)
+                this.drawCourseOverlay();
+
+                // Draw car at start position
+                this.renderer.drawCar(this.carRow, this.carCol, this.carDirection, blockSize);
+
+                // Draw island numbers
+                this.islandData.forEach(([row, col, width, height], islandNum) => {
+                    this.debug.drawIslandNumber(row, col, width, height, islandNum, blockSize);
+                });
+
+                this.renderer.ctx.restore();
+            }
+
+            drawCourseOverlay() {
+                const ctx = this.renderer.ctx;
+                const blockSize = this.viewport.blockSize;
+                const spanDetails = this.course.getSpanDetails();
+
+                ctx.strokeStyle = 'yellow';
+                ctx.lineWidth = 2;
+                ctx.fillStyle = 'yellow';
+
+                // Draw start position
+                const startScreen = this.renderer.gameToScreen(this.course.startRow, this.course.startCol, 0);
+                ctx.beginPath();
+                ctx.arc(startScreen.x * blockSize, startScreen.y * blockSize, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw each span as a line
+                let currentRow = this.course.startRow;
+                let currentCol = this.course.startCol;
+
+                spanDetails.forEach((span, idx) => {
+                    // Draw line from current position to junction
+                    const startScreen = this.renderer.gameToScreen(currentRow, currentCol, 0);
+                    const endScreen = this.renderer.gameToScreen(span.endRow, span.endCol, 0);
+
+                    ctx.beginPath();
+                    ctx.moveTo(startScreen.x * blockSize, startScreen.y * blockSize);
+                    ctx.lineTo(endScreen.x * blockSize, endScreen.y * blockSize);
+                    ctx.stroke();
+
+                    // Draw junction point
+                    ctx.beginPath();
+                    ctx.arc(endScreen.x * blockSize, endScreen.y * blockSize, 4, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Update current position
+                    currentRow = span.endRow;
+                    currentCol = span.endCol;
+                });
+            }
+        }
+
+        // Create the static view when page loads
+        window.addEventListener('load', () => {
+            new StaticGameView();
+        });
+    </script>
+</body>
+</html>
