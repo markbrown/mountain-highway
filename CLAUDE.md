@@ -10,19 +10,25 @@
 
 ```
 mountain-highway/
-├── index.html
-├── style.css
+├── index.html                      (main game page)
+├── test-game-static.html           (static debug visualization)
+├── test-validation.html            (validation test suite)
+├── style.css                       (game styles)
 ├── js/
-│   ├── game.js       (main game loop)
-│   ├── renderer.js   (canvas drawing)
-│   ├── physics.js    (car movement, collisions) - planned
-│   ├── level.js      (island/road generation) - planned
-│   └── audio.js      (sound effects) - planned
+│   ├── config.js                   (all constants and configuration)
+│   ├── renderer.js                 (canvas drawing, Viewport, Renderer)
+│   ├── course.js                   (Course, Span, Bridge, Direction constants)
+│   ├── level.js                    (Level class combining course + islands)
+│   ├── validation.js               (CourseValidator, ValidationError)
+│   ├── debug.js                    (DebugRenderer for overlays)
+│   ├── game.js                     (main game loop and state machine)
+│   ├── physics.js                  (car movement, collisions) - planned
+│   └── audio.js                    (sound effects) - planned
 ├── assets/
-│   └── sounds/       - planned
-├── README.md         (for repository viewers - Mark will manage)
-├── GAME_DESIGN.md    (game concept, mechanics, design decisions)
-└── CLAUDE.md         (workflow and development guidelines)
+│   └── sounds/                     - planned
+├── README.md                       (for repository viewers - Mark will manage)
+├── GAME_DESIGN.md                  (game concept, mechanics, design decisions)
+└── CLAUDE.md                       (workflow and development guidelines)
 ```
 
 ## Git Workflow - VERY IMPORTANT

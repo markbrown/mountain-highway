@@ -414,20 +414,33 @@ The validation test suite (`test-validation.html`) provides comprehensive debugg
 - Roads are rendered as rectangles based on entry edge, junction locations, and exit edge
 - Each island can have 0, 1, or 2 junctions depending on course configuration
 
-## Code Improvements (Planned)
+## Code Improvements
 
-### High Priority
-1. ~~**Unify road rendering approach**: Refactor `drawIslandRoad()` to use rectangle-based approach like `drawComplexRoadTwoTurns()`. Eliminate complex polygon calculations.~~ ✅ **Completed**
-2. ~~**Extract magic numbers**: Define constants for values like car half-length (0.3), stopping margin (0.05), road half-width (0.5).~~ ✅ **Completed** - Created `config.js` with all game parameters centralized
-3. ~~**Course validation**: Add validation to check that course and islands are consistent (islands large enough for junctions, junction points inside boundaries, gaps match spans).~~ ✅ **Completed** - Created `validation.js` with comprehensive validation system
+### Completed Improvements ✅
 
-**Validation Checks Implemented:**
-- Islands must be at least 2x2 units
-- Start location and all junctions must be in island interiors (strictly > edge, not equal)
-- Bridge gaps must be at least 1 unit
-- Maximum bridge size must land on next island
-- Bridge tolerance (max - min) must be at least 1 unit
-- Includes test suite with 10 test cases in `test-validation.html`
+1. **Unified road rendering approach** - Refactored to use rectangle-based approach. Eliminated complex polygon calculations.
+2. **Configuration centralization** - Created `config.js` with all game parameters centralized (car dimensions, road width, bridge speeds, etc.)
+3. **Course validation system** - Created `validation.js` with comprehensive validation:
+   - Islands must be at least 2x2 units
+   - Start location and all junctions must be in island interiors (strictly > edge, not equal)
+   - Bridge gaps must be at least 1 unit
+   - Maximum bridge size must land on next island
+   - Bridge tolerance (max - min) must be at least 1 unit
+   - Includes test suite with 10 test cases in `test-validation.html`
+4. **Bridge abstraction** - Extracted bridge logic into reusable structures:
+   - Created `Bridge` class to encapsulate bridge data (span index, islands, positions, direction, junction type)
+   - Added `Course.getBridges(islands)` as single source of truth for finding bridges
+   - Added `Bridge.calculateRange(islands)` to encapsulate safe range calculation
+   - Simplified `DebugRenderer.drawBridgeZones()` and extracted `CourseValidator.validateBridges()`
+5. **Level abstraction** - Created `Level` class to centralize course + island configuration:
+   - Single source of truth for level configuration in `createExampleLevel()`
+   - Auto-calculates bridge animation data from geometry
+   - Eliminates duplication across game and test files
+6. **Separated renderer concerns** - Now uses `Course.getRoadSegmentsForIsland()` and `Renderer.drawIslandRoadFromSpans()`
+7. **Removed unused code** - Cleaned up obsolete rendering methods:
+   - `drawIslandRoad()` - replaced by `drawIslandRoadFromSpans()`
+   - `drawComplexRoadTwoTurns()` - replaced by `drawIslandRoadFromSpans()`
+   - `drawIsoCube()` - legacy method, not used
 
 **Test Suite Design Principles:**
 - Islands must be in course-order in the array (island N reached after N bridges)
@@ -436,25 +449,16 @@ The validation test suite (`test-validation.html`) provides comprehensive debugg
 - Example: "Gap Too Small" needs gap = 0, not gap = 1 (which passes)
 - Visual rendering order: sort islands by `row + col` distance for proper depth ordering
 
-### Medium Priority
-4. **State machine refactor**: Replace nested setTimeout callbacks with declarative path segment system.
+### Planned Improvements
+
+**Medium Priority:**
+1. **State machine refactor**: Replace nested setTimeout callbacks with declarative path segment system.
    - Current implementation uses complex nested setTimeout chains in `advanceToNextSegment()`
    - Could use a segment queue with state transitions for cleaner flow
-5. ~~**Separate renderer concerns**: Pass road configuration data instead of hardcoding.~~ ✅ **Completed** - Now uses `Course.getRoadSegmentsForIsland()` and `Renderer.drawIslandRoadFromSpans()`
-6. ~~**Bridge abstraction**: Extract bridge detection and calculation logic into reusable structures.~~ ✅ **Completed**
-   - Created `Bridge` class to encapsulate bridge data (span index, islands, positions, direction, junction type)
-   - Added `Course.getBridges(islands)` as single source of truth for finding bridges
-   - Added `Bridge.calculateRange(islands)` to encapsulate safe range calculation
-   - Benefits: Eliminates duplication between debug and validation, simpler consumer code, easier to test
-   - Simplified `DebugRenderer.drawBridgeZones()` and extracted `CourseValidator.validateBridges()`
-7. **Debug mode enhancements**: Add overlays for junction markers, car target position, current game state, road segment boundaries.
+2. **Debug mode enhancements**: Add overlays for junction markers, car target position, current game state, road segment boundaries.
 
-### Low Priority
-7. ~~**Remove unused code**: Clean up old rendering methods now that Course-based rendering is implemented.~~ ✅ **Completed** - Removed obsolete methods:
-   - `drawIslandRoad()` - replaced by `drawIslandRoadFromSpans()`
-   - `drawComplexRoadTwoTurns()` - replaced by `drawIslandRoadFromSpans()`
-   - `drawIsoCube()` - legacy method, not used
-8. **Decouple systems**: Create separate PathController, BridgeController, GameController for better modularity.
+**Low Priority:**
+3. **Decouple systems**: Create separate PathController, BridgeController, GameController for better modularity.
 
 ## Future Features to Consider
 

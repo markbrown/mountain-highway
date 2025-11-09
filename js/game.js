@@ -228,10 +228,12 @@ class Game {
 
         const wallHeight = GameConfig.island.wallHeight;
 
-        // Sort islands by row (descending) for proper back-to-front rendering
+        // Sort islands by distance from camera (row + col, descending) for proper back-to-front rendering
+        // Higher sum = farther from camera (rendered first)
+        // Lower sum = closer to camera (rendered last, overlays others)
         const sortedIndices = this.islands
             .map((island, idx) => ({island, idx}))
-            .sort((a, b) => b.island[0] - a.island[0])
+            .sort((a, b) => (b.island[0] + b.island[1]) - (a.island[0] + a.island[1]))
             .map(item => item.idx);
 
         // Render each island completely (colors → road → lines) from farthest to nearest

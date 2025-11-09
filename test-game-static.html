@@ -80,11 +80,10 @@
 
     <!-- Load all game scripts -->
     <script src="js/config.js"></script>
-    <script src="js/viewport.js"></script>
+    <script src="js/renderer.js"></script>
     <script src="js/course.js"></script>
     <script src="js/validation.js"></script>
     <script src="js/level.js"></script>
-    <script src="js/renderer.js"></script>
     <script src="js/debug.js"></script>
 
     <script>
@@ -137,10 +136,12 @@
 
                 const wallHeight = GameConfig.island.wallHeight;
 
-                // Sort islands by rendering order (back to front)
+                // Sort islands by distance from camera (row + col, descending) for proper back-to-front rendering
+                // Higher sum = farther from camera (rendered first)
+                // Lower sum = closer to camera (rendered last, overlays others)
                 const sortedIndices = this.islands
                     .map((island, idx) => ({island, idx}))
-                    .sort((a, b) => b.island[0] - a.island[0])
+                    .sort((a, b) => (b.island[0] + b.island[1]) - (a.island[0] + a.island[1]))
                     .map(item => item.idx);
 
                 // Render each island
