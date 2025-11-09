@@ -53,7 +53,7 @@ class CourseValidator {
                 errors.push(new ValidationError(
                     `Island width ${width} is less than minimum 2 columns`,
                     null,
-                    index + 1
+                    index
                 ));
             }
 
@@ -61,7 +61,7 @@ class CourseValidator {
                 errors.push(new ValidationError(
                     `Island height ${height} is less than minimum 2 rows`,
                     null,
-                    index + 1
+                    index
                 ));
             }
         });

@@ -652,7 +652,7 @@ class Renderer {
      */
     drawComplexRoadTwoTurns(islandRow, islandCol, islandWidth, islandHeight,
                             junction1Row, junction1Col, junction2Row, junction2Col, blockSize) {
-        // Island 4: Entry at row 8, junction1 at (9,5), junction2 at (9,7), exit at row 10
+        // Island 3: Entry at row 8, junction1 at (9,5), junction2 at (9,7), exit at row 10
         // Draw as three overlapping rectangles:
 
         // Rectangle 1: Entry to junction1+0.5 (row direction)

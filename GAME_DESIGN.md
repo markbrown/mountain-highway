@@ -36,12 +36,13 @@ A course defines the path the car will travel through the game.
 
 **Example Course:**
 Starting at (1,1):
-1. Span 1: +4 columns to (5,1) → Island 2 with left turn
-2. Span 2: +5 rows to (5,6) → Island 3 straight ahead
-3. Span 3: +3 rows to (5,9) → Island 4 with right turn
-4. Span 4: +7 columns to (12,9) → Island 5 (final destination)
+1. Span 0: +4 columns to (1,5) → Island 1 with left turn
+2. Span 1: +5 rows to (6,5) → Island 2 straight ahead
+3. Span 2: +3 rows to (9,5) → Island 3 with right turn
+4. Span 3: +2 columns to (9,7) → Island 3 with left turn (stays on same island)
+5. Span 4: +4 rows to (13,7) → Island 4 (final destination)
 
-This course requires 5 islands total: one at the start, one at the end of each span.
+This course requires 5 islands (numbered 0-4): Island 0 at the start, then one island at the end of each bridge-crossing span. Note that spans 2 and 3 both occur on Island 3 (two junctions, no bridge between them).
 
 ## Visual Style
 
@@ -266,7 +267,7 @@ All roads are rendered using overlapping rectangles. The unified rectangle-based
 **Case 1: No junction (straight-ahead)**
 - Single rectangle from entry edge to exit edge
 - Entry and exit directions are the same
-- Example: Island 3 with row→row
+- Example: Island 2 with row→row
   - Single rectangle: row 5 to row 7, centered at column 5
 
 **Case 2: One junction (turn to bridge)**
@@ -275,7 +276,7 @@ All roads are rendered using overlapping rectangles. The unified rectangle-based
 - Rectangle 1: Entry edge to junction+0.5 (in entry direction)
   - Extends 0.5 units past junction for proper overlap
 - Rectangle 2: Junction to exit edge (in exit direction)
-- Example: Island 2 with column→row
+- Example: Island 1 with column→row
   - Rect 1: column 4 to 5.5, centered at row 1 (column direction)
   - Rect 2: row 1 to 2, centered at column 5 (row direction)
 
@@ -285,7 +286,7 @@ All roads are rendered using overlapping rectangles. The unified rectangle-based
 - Rectangle 1: Entry edge to junction1+0.5 (in entry direction)
 - Rectangle 2: Junction1 to junction2+0.5 (in middle direction)
 - Rectangle 3: Junction2 to exit edge (in exit direction)
-- Example: Island 4 with row→column→row
+- Example: Island 3 with row→column→row
   - Rect 1: row 8 to 9.5, centered at column 5 (row direction)
   - Rect 2: column 5 to 7.5, centered at row 9 (column direction)
   - Rect 3: row 9 to 10, centered at column 7 (row direction)
