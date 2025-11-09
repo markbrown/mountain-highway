@@ -46,9 +46,32 @@ Starting at (1,1):
 6. Span 5: +3 columns to (13,10) → Island 5 with turn
 7. Span 6: -4 rows to (9,10) → Island 6 with turn (negative span)
 8. Span 7: -3 rows to (6,10) → Island 7 with turn (negative span)
-9. Span 8: +3 columns to (6,13) → Island 7 (stays on same island, final destination)
+9. Span 8: +3 columns to (6,13) → Island 7 with turn (stays on same island)
+10. Span 9: +5 rows to (11,13) → Island 8 (end)
 
-This course requires 8 islands (numbered 0-7): Island 0 at the start, then one island at the end of each bridge-crossing span. Note that spans 2-3 both occur on Island 3, and spans 7-8 both occur on Island 7 (multiple junctions, no bridge between them).
+This course requires 9 islands (numbered 0-8): Island 0 at the start, then one island at the end of each bridge-crossing span. Note that spans 2-3 both occur on Island 3, and spans 7-8 both occur on Island 7 (multiple junctions, no bridge between them).
+
+**Adding New Spans:**
+
+When extending a course with a new span:
+
+1. **Calculate the junction position**: Add the span's signed length to the previous junction
+   - Example: Previous junction at (6,13), add +5 rows → new junction at (11,13)
+
+2. **Determine if a new island is needed**:
+   - Check if the new junction falls within the current island's boundaries
+   - If the junction is outside the current island, a bridge is required → create a new island
+   - If the junction is inside the current island, no bridge needed → span stays on same island
+
+3. **If creating a new island** (when junction is outside current island):
+   - For a 2×2 island, subtract 1 from both row and column coordinates
+   - Junction at (11,13) → Island starts at (10,12)
+   - This ensures junction at (row+1, col+1) = island center
+   - Default to 2×2 islands unless otherwise specified
+
+**Examples:**
+- Span from (9,5) with +2 columns on island 3 (at 8,4 with size 4×2) → junction (9,7) is inside island 3 → no bridge
+- Span from (6,13) with +5 rows on island 7 (at 5,9 with size 5×2) → junction (11,13) is outside island 7 → bridge to new island 8
 
 ## Visual Style
 
