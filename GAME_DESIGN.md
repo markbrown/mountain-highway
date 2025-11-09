@@ -292,10 +292,16 @@ All roads are rendered using overlapping rectangles. The unified rectangle-based
   - Rect 3: row 9 to 10, centered at column 7 (row direction)
 
 **Implementation:**
-- `drawIslandRoad()` handles cases 1 and 2 (0 or 1 junction)
-- `drawComplexRoadTwoTurns()` handles case 3 (2 junctions)
-- Both methods use `drawRoad()` primitive to draw individual rectangles
-- The +0.5 extension ensures seamless visual overlap at corners when leading to another junction
+- `Course.getRoadSegmentsForIsland()` extracts span segments for each island
+  - Finds all spans that pass through the island
+  - Clips segments to island boundaries
+  - Returns array of segments with start/end positions and directions
+- `Renderer.drawIslandRoadFromSpans()` renders roads systematically based on junction types
+  - Detects straight-ahead: all segments same direction → merge into single rectangle
+  - Detects turns: direction changes → separate rectangles with +0.5 extension at turns
+  - Number of rectangles = number of direction changes + 1
+- Road rendering is entirely derived from Course definition (no manual configuration needed)
+- The +0.5 extension ensures seamless visual overlap at corners when there's a turn
 
 ### Rendering
 - HTML5 Canvas for all graphics
@@ -304,7 +310,11 @@ All roads are rendered using overlapping rectangles. The unified rectangle-based
 - 2px black stroke on visible edges only
 
 **Layering Strategy:**
-- Islands rendered from highest row to lowest row (back-to-front, top of screen to bottom)
+- Islands rendered back-to-front (farthest to nearest) for proper depth ordering
+- **Rendering order**: Sort islands by distance from camera, measured as `row + col`
+  - Higher sum = farther from camera (rendered first)
+  - Lower sum = closer to camera (rendered last, overlays others)
+  - This works correctly even when islands are at the same row or column
 - For each island, rendering happens in three phases:
   1. **Base colors**: Walls (brown) and top surface (green)
   2. **Road**: Grey road surface (1 unit wide)

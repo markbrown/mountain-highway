@@ -139,7 +139,12 @@
                 debug.drawGrid(gridMinRow, bounds.maxRow, gridMinCol, bounds.maxCol, blockSize);
 
                 // Render islands (back to front)
-                const sortedIslands = [...islands].sort((a, b) => b[0] - a[0]);
+                // Sort by distance from camera (row + col sum, higher = farther)
+                const sortedIslands = [...islands].sort((a, b) => {
+                    const distA = a[0] + a[1];  // row + col
+                    const distB = b[0] + b[1];
+                    return distB - distA;  // Render farthest first
+                });
 
                 // Get island indices for course-order
                 sortedIslands.forEach((island, visualIndex) => {
@@ -416,12 +421,12 @@
             'Junction exactly on island edge should fail (must be 1+ units from edge)',
             () => {
                 const course = new Course();
-                course.addSpan(4, Direction.COLUMN);
+                course.addSpan(3, Direction.COLUMN); // Length 3: junction at (1,4) - exactly on island edge
                 course.addSpan(5, Direction.ROW);
                 return course;
             },
             () => [
-                [0, 4, 2, 7], // Island extends to row 7, junction at row 6 is on edge
+                [0, 4, 2, 7], // Island at col 4, junction at col 4 is exactly on edge
                 [0, 0, 2, 2],
             ],
             false
@@ -433,12 +438,12 @@
             'Gap between islands < 1 unit should fail',
             () => {
                 const course = new Course();
-                course.addSpan(3, Direction.COLUMN);
+                course.addSpan(2, Direction.COLUMN); // Length 2: junction at (1,3)
                 return course;
             },
             () => [
-                [0, 3, 2, 2], // Gap of 0.5 units (too small)
-                [0, 0, 2, 2],
+                [0, 0, 2, 2],  // Island 0 (start): cols [0, 2)
+                [0, 2, 2, 2],  // Island 1 (after bridge): cols [2, 4) - gap of 0 (islands touching)
             ],
             false
         );
