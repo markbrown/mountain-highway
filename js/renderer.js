@@ -1,13 +1,105 @@
 // Renderer - handles all drawing operations for the isometric view
 
+/**
+ * Viewport defines what region of the infinite grid plane to display
+ */
+class Viewport {
+    /**
+     * Create a viewport for a specific grid region
+     * @param {number} minRow - Minimum row to display
+     * @param {number} maxRow - Maximum row to display
+     * @param {number} minCol - Minimum column to display
+     * @param {number} maxCol - Maximum column to display
+     * @param {number} blockSize - Size of each grid square in pixels
+     * @param {number} fixedWidth - Optional fixed canvas width (otherwise auto-calculated)
+     * @param {number} fixedHeight - Optional fixed canvas height (otherwise auto-calculated)
+     */
+    constructor(minRow, maxRow, minCol, maxCol, blockSize = GameConfig.grid.blockSize, fixedWidth = null, fixedHeight = null) {
+        this.minRow = minRow;
+        this.maxRow = maxRow;
+        this.minCol = minCol;
+        this.maxCol = maxCol;
+        this.blockSize = blockSize;
+        this.fixedWidth = fixedWidth;
+        this.fixedHeight = fixedHeight;
+
+        // Calculate canvas size needed for this viewport
+        this.calculateCanvasSize();
+    }
+
+    /**
+     * Calculate the canvas dimensions needed to show this viewport
+     */
+    calculateCanvasSize() {
+        // Calculate the four corners of the viewport in isometric screen space
+        // (before scaling by blockSize)
+        const corners = [
+            { x: this.minCol - this.maxRow, y: -(this.minCol + this.maxRow) / 2 }, // top-left corner
+            { x: this.maxCol - this.maxRow, y: -(this.maxCol + this.maxRow) / 2 }, // top-right corner
+            { x: this.minCol - this.minRow, y: -(this.minCol + this.minRow) / 2 }, // bottom-left corner
+            { x: this.maxCol - this.minRow, y: -(this.maxCol + this.minRow) / 2 }  // bottom-right corner
+        ];
+
+        // Find the bounding box in screen space
+        const minX = Math.min(...corners.map(c => c.x));
+        const maxX = Math.max(...corners.map(c => c.x));
+        const minY = Math.min(...corners.map(c => c.y));
+        const maxY = Math.max(...corners.map(c => c.y));
+
+        // Store screen space bounds
+        this.screenMinX = minX;
+        this.screenMinY = minY;
+        this.screenMaxX = maxX;
+        this.screenMaxY = maxY;
+
+        // Canvas size (use fixed dimensions if provided, otherwise auto-calculate)
+        if (this.fixedWidth !== null && this.fixedHeight !== null) {
+            this.canvasWidth = this.fixedWidth;
+            this.canvasHeight = this.fixedHeight;
+        } else {
+            this.canvasWidth = Math.ceil((maxX - minX) * this.blockSize);
+            this.canvasHeight = Math.ceil((maxY - minY) * this.blockSize);
+        }
+    }
+
+    /**
+     * Get the translation offset to apply before rendering
+     * This positions the viewport region at the origin of the canvas
+     */
+    getOffset() {
+        if (this.fixedWidth !== null && this.fixedHeight !== null) {
+            // For fixed canvas size, center the viewport region
+            const centerX = (this.screenMinX + this.screenMaxX) / 2;
+            const centerY = (this.screenMinY + this.screenMaxY) / 2;
+
+            return {
+                x: this.canvasWidth / 2 - centerX * this.blockSize,
+                y: this.canvasHeight / 2 - centerY * this.blockSize
+            };
+        } else {
+            // For auto-sized canvas, position viewport at origin
+            return {
+                x: -this.screenMinX * this.blockSize,
+                y: -this.screenMinY * this.blockSize
+            };
+        }
+    }
+}
+
 class Renderer {
-    constructor(canvas) {
+    constructor(canvas, viewport = null) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
+        this.viewport = viewport;
 
-        // Set canvas size
-        this.canvas.width = GameConfig.canvas.width;
-        this.canvas.height = GameConfig.canvas.height;
+        // Set canvas size based on viewport or use default
+        if (viewport) {
+            this.canvas.width = viewport.canvasWidth;
+            this.canvas.height = viewport.canvasHeight;
+        } else {
+            this.canvas.width = GameConfig.canvas.width;
+            this.canvas.height = GameConfig.canvas.height;
+        }
     }
 
     clear() {
@@ -17,10 +109,11 @@ class Renderer {
 
     /**
      * Convert game grid coordinates to screen coordinates
+     * This is a pure mathematical transformation from grid space to isometric screen space
      * Game coordinates:
      *   - row: increases upward on screen
      *   - col: increases rightward on screen
-     * Screen coordinates:
+     * Screen coordinates (unscaled):
      *   - increasing col -> increase X, decrease Y (move right)
      *   - increasing row -> decrease X, decrease Y (move up)
      */

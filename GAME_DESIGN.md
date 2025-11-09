@@ -166,15 +166,30 @@ For **turns** (left or right):
 - `test-validation.html` - Validation test suite with 10 test cases
 
 ### Game Coordinate System
-The game uses a **row/column** coordinate system distinct from screen coordinates:
+The game uses a **row/column** coordinate system on an infinite grid plane:
 
 - **Row**: Increases upward on screen (toward the top of the canvas)
 - **Column**: Increases rightward on screen (toward the right side of the canvas)
-- **Grid unit**: 50px base block size
+- **Grid unit**: 50px base block size (configurable)
 
 **Coordinate mapping to screen (isometric projection):**
-- `screenX = (col - row) * blockSize`
-- `screenY = -(col + row) / 2 * blockSize`
+- Pure transformation: `screenX = col - row`, `screenY = -(col + row) / 2`
+- The `gameToScreen()` method performs this pure mathematical transformation
+- Scaling by `blockSize` and viewport offset are applied separately
+
+### Viewport System
+The **Viewport** class defines what region of the infinite grid plane to display:
+
+- **Purpose**: Separates the concept of the game grid from the view
+- **Viewport bounds**: Defined by `minRow, maxRow, minCol, maxCol`
+- **Canvas sizing**: Automatically calculated to exactly fit the viewport region
+- **Offset calculation**: Positions the viewport region at canvas origin
+- **Usage**: Pass viewport to Renderer constructor, or omit for default fixed canvas
+
+This architecture allows:
+- Static visualizations with custom viewports (e.g., test suite)
+- Future features like camera panning, zooming, or following the car
+- Different courses with different viewport requirements
 
 **Examples:**
 - Island at (row=0, col=0) with dimensions 2x2 occupies game coordinates from (0,0) to (2,2)

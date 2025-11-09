@@ -49,6 +49,18 @@
         }
         .success { color: #4CAF50; }
         .error { color: #f44336; }
+        .visualization {
+            margin-top: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background: white;
+            display: flex;
+            justify-content: center;
+        }
+        .visualization canvas {
+            border: 1px solid #ccc;
+        }
     </style>
 </head>
 <body>
@@ -58,9 +70,132 @@
     <div id="test-results"></div>
 
     <script src="js/config.js"></script>
+    <script src="js/renderer.js"></script>
     <script src="js/course.js"></script>
     <script src="js/validation.js"></script>
     <script>
+        // Static course visualizer using Viewport
+        class CourseVisualizer {
+            static render(course, islands) {
+                // Calculate bounds - all island tops plus 1 unit margin
+                const bounds = this.calculateBounds(islands);
+
+                // Create viewport for this region
+                const viewport = new Viewport(
+                    bounds.minRow, bounds.maxRow,
+                    bounds.minCol, bounds.maxCol
+                );
+
+                // Create canvas with viewport
+                const canvas = document.createElement('canvas');
+                const renderer = new Renderer(canvas, viewport);
+
+                // Clear background
+                renderer.clear();
+
+                // Apply viewport transform
+                const ctx = renderer.ctx;
+                ctx.save();
+                const offset = viewport.getOffset();
+                ctx.translate(offset.x, offset.y);
+
+                const blockSize = viewport.blockSize;
+                const wallHeight = GameConfig.island.wallHeight;
+
+                // Render islands (back to front)
+                const sortedIslands = [...islands].sort((a, b) => b[0] - a[0]);
+
+                sortedIslands.forEach(island => {
+                    const [row, col, width, height] = island;
+
+                    // Draw island
+                    const corners = renderer.drawIslandColors(row, col, width, height, wallHeight, blockSize);
+                    this.drawRoadForIsland(renderer, course, island, blockSize);
+                    renderer.drawIslandOutlines(corners);
+                });
+
+                ctx.restore();
+                return canvas;
+            }
+
+            static drawRoadForIsland(renderer, course, island, blockSize) {
+                const [islandRow, islandCol, islandWidth, islandHeight] = island;
+                const spanDetails = course.getSpanDetails();
+
+                // Find spans with junctions on this island
+                spanDetails.forEach((span, spanIndex) => {
+                    const junctionRow = span.endRow;
+                    const junctionCol = span.endCol;
+
+                    if (junctionRow >= islandRow && junctionRow <= islandRow + islandHeight &&
+                        junctionCol >= islandCol && junctionCol <= islandCol + islandWidth) {
+
+                        let entryDir, exitDir;
+
+                        if (spanIndex === 0) {
+                            entryDir = span.direction;
+                        } else {
+                            entryDir = spanDetails[spanIndex - 1].direction;
+                        }
+
+                        if (spanIndex < spanDetails.length - 1) {
+                            exitDir = spanDetails[spanIndex + 1].direction;
+                        } else {
+                            exitDir = span.direction;
+                        }
+
+                        renderer.drawIslandRoad(
+                            islandRow, islandCol, islandWidth, islandHeight,
+                            entryDir, exitDir,
+                            junctionRow, junctionCol,
+                            blockSize
+                        );
+                    }
+                });
+
+                // Check if start position is on this island
+                if (course.startRow >= islandRow && course.startRow <= islandRow + islandHeight &&
+                    course.startCol >= islandCol && course.startCol <= islandCol + islandWidth) {
+
+                    const firstSpan = spanDetails[0];
+                    const junctionOnSameIsland =
+                        firstSpan.endRow >= islandRow && firstSpan.endRow <= islandRow + islandHeight &&
+                        firstSpan.endCol >= islandCol && firstSpan.endCol <= islandCol + islandWidth;
+
+                    if (!junctionOnSameIsland) {
+                        const exitDir = firstSpan.direction;
+                        renderer.drawIslandRoad(
+                            islandRow, islandCol, islandWidth, islandHeight,
+                            exitDir, exitDir,
+                            course.startRow, course.startCol,
+                            blockSize
+                        );
+                    }
+                }
+            }
+
+            static calculateBounds(islands) {
+                let minRow = Infinity, maxRow = -Infinity;
+                let minCol = Infinity, maxCol = -Infinity;
+
+                islands.forEach(island => {
+                    const [row, col, width, height] = island;
+                    minRow = Math.min(minRow, row);
+                    maxRow = Math.max(maxRow, row + height);
+                    minCol = Math.min(minCol, col);
+                    maxCol = Math.max(maxCol, col + width);
+                });
+
+                // Add 1 unit margin
+                return {
+                    minRow: minRow - 1,
+                    maxRow: maxRow + 1,
+                    minCol: minCol - 1,
+                    maxCol: maxCol + 1
+                };
+            }
+        }
+
         // Test runner
         class TestRunner {
             constructor() {
@@ -104,6 +239,17 @@
                     desc.className = 'test-description';
                     desc.textContent = test.description;
                     div.appendChild(desc);
+
+                    // Add visualization
+                    const vizDiv = document.createElement('div');
+                    vizDiv.className = 'visualization';
+                    try {
+                        const canvas = CourseVisualizer.render(test.course, test.islands);
+                        vizDiv.appendChild(canvas);
+                    } catch (e) {
+                        vizDiv.innerHTML = `<em>Unable to render: ${e.message}</em>`;
+                    }
+                    div.appendChild(vizDiv);
 
                     const output = document.createElement('div');
                     output.className = 'console-output';

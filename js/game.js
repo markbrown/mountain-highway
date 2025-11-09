@@ -3,7 +3,14 @@
 class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
-        this.renderer = new Renderer(this.canvas);
+
+        // Define viewport for the game (what region of grid to show)
+        // We want a fixed canvas size (800x600) showing a specific region
+        // Calculate the grid region that fits in 800x600 at 50px blockSize
+        // The previous view centered around the start of the course
+        this.viewport = this.createViewportForCanvas(800, 600);
+
+        this.renderer = new Renderer(this.canvas, this.viewport);
         this.debug = new DebugRenderer(this.renderer);
 
         // Debug options
@@ -45,6 +52,24 @@ class Game {
         this.lastTime = 0;
 
         this.init();
+    }
+
+    /**
+     * Create a viewport that shows a specific grid region to fit in a fixed canvas size
+     * This recreates the previous fixed view (800x600) centered at bottom of course
+     */
+    createViewportForCanvas(canvasWidth, canvasHeight) {
+        const blockSize = GameConfig.grid.blockSize;
+
+        // Start at the bottom of the course, showing the beginning islands
+        // We want to see from roughly row -1 to row 11 (12 row span)
+        // and col -1 to col 9 (10 col span)
+        const minRow = -1;
+        const maxRow = 11;
+        const minCol = -1;
+        const maxCol = 9;
+
+        return new Viewport(minRow, maxRow, minCol, maxCol, blockSize, canvasWidth, canvasHeight);
     }
 
     init() {
@@ -188,15 +213,17 @@ class Game {
     render() {
         this.renderer.clear();
 
-        const blockSize = GameConfig.grid.blockSize;
+        const blockSize = this.viewport.blockSize;
 
-        // Center the view on canvas
+        // Apply viewport transform
         this.renderer.ctx.save();
-        this.renderer.ctx.translate(GameConfig.grid.viewOffsetX, GameConfig.grid.viewOffsetY);
+        const offset = this.viewport.getOffset();
+        this.renderer.ctx.translate(offset.x, offset.y);
 
         // Draw debug grid (optional - for development)
         if (this.showDebugGrid) {
-            this.debug.drawGrid(0, 16, 0, 16, blockSize);
+            this.debug.drawGrid(this.viewport.minRow, this.viewport.maxRow,
+                              this.viewport.minCol, this.viewport.maxCol, blockSize);
         }
 
         // Draw islands from top to bottom (highest row first)
