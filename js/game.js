@@ -4,14 +4,14 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
 
-        // Define viewport for the game (what region of grid to show)
-        // We want a fixed canvas size (800x600) showing a specific region
-        // Calculate the grid region that fits in 800x600 at 50px blockSize
-        // The previous view centered around the start of the course
-        this.viewport = this.createViewportForCanvas(800, 600);
+        // Fixed canvas size
+        this.canvasWidth = 800;
+        this.canvasHeight = 600;
 
-        this.renderer = new Renderer(this.canvas, this.viewport);
-        this.debug = new DebugRenderer(this.renderer);
+        // Viewport will be updated each frame based on car position
+        this.viewport = null;
+        this.renderer = null;
+        this.debug = null;
 
         // Debug options
         this.showDebugGrid = GameConfig.debug.showGrid;
@@ -54,19 +54,76 @@ class Game {
     }
 
     /**
-     * Create a viewport that shows a specific grid region to fit in a fixed canvas size
-     * This recreates the previous fixed view (800x600) centered at bottom of course
+     * Calculate course bounds from islands
+     */
+    calculateCourseBounds() {
+        let minRow = Infinity, maxRow = -Infinity;
+        let minCol = Infinity, maxCol = -Infinity;
+
+        this.islands.forEach(island => {
+            const [row, col, width, height] = island;
+            minRow = Math.min(minRow, row);
+            maxRow = Math.max(maxRow, row + height);
+            minCol = Math.min(minCol, col);
+            maxCol = Math.max(maxCol, col + width);
+        });
+
+        // Add 1 unit margin
+        return {
+            minRow: minRow - 1,
+            maxRow: maxRow + 1,
+            minCol: minCol - 1,
+            maxCol: maxCol + 1
+        };
+    }
+
+    /**
+     * Create a viewport that follows the car vertically while staying within course bounds
+     * Car is positioned halfway up the viewport
+     * Horizontal view is centered on (0,0) and does not scroll
      */
     createViewportForCanvas(canvasWidth, canvasHeight) {
         const blockSize = GameConfig.grid.blockSize;
 
-        // Start at the bottom of the course, showing the beginning islands
-        // We want to see from roughly row -1 to row 11 (12 row span)
-        // and col -1 to col 9 (10 col span)
-        const minRow = -1;
-        const maxRow = 11;
+        // Calculate full course bounds
+        const courseBounds = this.calculateCourseBounds();
+
+        // Fixed column range centered around course
+        // Keep the same column range throughout (no horizontal scrolling)
         const minCol = -1;
         const maxCol = 9;
+
+        // Calculate viewport height in grid units
+        // We want to show roughly half the course height at a time for scrolling
+        // In isometric: moving 1 row changes screenY by blockSize/2
+        const viewportHeightInRows = 8; // Show ~8 rows at a time (roughly half of 16-row course)
+
+        // Add some extra margin for smoother scrolling
+        const scrollMargin = 1;
+
+        // Position viewport to center car vertically
+        const carCenterRow = this.carRow;
+        const desiredMinRow = carCenterRow - viewportHeightInRows / 2 - scrollMargin;
+        const desiredMaxRow = carCenterRow + viewportHeightInRows / 2 + scrollMargin;
+
+        // Clamp to course bounds (don't scroll past top or bottom)
+        let minRow = desiredMinRow;
+        let maxRow = desiredMaxRow;
+
+        if (minRow < courseBounds.minRow) {
+            minRow = courseBounds.minRow;
+            maxRow = minRow + viewportHeightInRows + scrollMargin * 2;
+        }
+
+        if (maxRow > courseBounds.maxRow) {
+            maxRow = courseBounds.maxRow;
+            minRow = maxRow - viewportHeightInRows - scrollMargin * 2;
+        }
+
+        // Ensure minRow doesn't go below bounds after clamping maxRow
+        if (minRow < courseBounds.minRow) {
+            minRow = courseBounds.minRow;
+        }
 
         return new Viewport(minRow, maxRow, minCol, maxCol, blockSize, canvasWidth, canvasHeight);
     }
@@ -81,12 +138,33 @@ class Game {
         const validationResult = this.level.validate();
         CourseValidator.printResults(validationResult, 'Course Validation');
 
+        // Initialize viewport and renderer
+        this.updateViewport();
+
         // Initialize: car drives to edge of first island (column 2 - car half-length - stopping margin)
         this.targetPosition = 2 - GameConfig.car.halfLength - GameConfig.car.stoppingMargin;
         this.gameState = 'driving';
 
         // Start animation loop
         requestAnimationFrame((time) => this.animate(time));
+    }
+
+    /**
+     * Update viewport based on current car position
+     */
+    updateViewport() {
+        this.viewport = this.createViewportForCanvas(this.canvasWidth, this.canvasHeight);
+
+        // Create or update renderer with new viewport
+        if (this.renderer === null) {
+            this.renderer = new Renderer(this.canvas, this.viewport);
+            this.debug = new DebugRenderer(this.renderer);
+        } else {
+            // Update existing renderer's viewport
+            this.renderer.viewport = this.viewport;
+            this.canvas.width = this.viewport.canvasWidth;
+            this.canvas.height = this.viewport.canvasHeight;
+        }
     }
 
     animate(currentTime) {
@@ -153,7 +231,7 @@ class Game {
     }
 
     advanceToNextSegment() {
-        // Segments: 0->bridge1, 1->junction1, 2->bridge2, 3->junction2, 4->bridge3, 5->junction3(right), 6->junction4(left), 7->bridge4, 8->end
+        // Segments: 0->bridge1, 1->junction1, 2->bridge2, 3->junction2, 4->bridge3, 5->junction3(right), 6->junction4(left), 7->bridge4, 8->junction5, 9->end
         this.currentBridge++;
 
         if (this.currentBridge === 1) {
@@ -193,13 +271,23 @@ class Game {
                 }, ((7 - this.carCol) / this.carSpeed) * 1000);
             }, ((9 - this.carRow) / this.carSpeed) * 1000);
         } else if (this.currentBridge === 4) {
-            // Just crossed bridge 3, drive to final junction at (13,7)
+            // Just crossed bridge 4, drive to junction 5 at (13,7) then turn right
             this.targetPosition = 13;
+            this.gameState = 'driving';
+            // After reaching junction 5, turn from row to column
+            setTimeout(() => {
+                this.carDirection = 'column';
+                this.targetPosition = 9 - GameConfig.car.halfLength - GameConfig.car.stoppingMargin;
+                this.gameState = 'driving';
+            }, ((13 - this.carRow) / this.carSpeed) * 1000);
+        } else if (this.currentBridge === 5) {
+            // Just crossed bridge 5, drive to final junction at (13,10)
+            this.targetPosition = 10;
             this.gameState = 'driving';
             // After reaching final junction, animation is complete
             setTimeout(() => {
                 this.gameState = 'done';
-            }, ((13 - this.carRow) / this.carSpeed) * 1000);
+            }, ((10 - this.carCol) / this.carSpeed) * 1000);
         } else {
             // Reached end
             this.gameState = 'done';
@@ -207,6 +295,9 @@ class Game {
     }
 
     render() {
+        // Update viewport to follow car
+        this.updateViewport();
+
         this.renderer.clear();
 
         const blockSize = this.viewport.blockSize;

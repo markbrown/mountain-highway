@@ -40,15 +40,17 @@ Starting at (1,1):
 2. Span 1: +5 rows to (6,5) → Island 2 straight ahead
 3. Span 2: +3 rows to (9,5) → Island 3 with right turn
 4. Span 3: +2 columns to (9,7) → Island 3 with left turn (stays on same island)
-5. Span 4: +4 rows to (13,7) → Island 4 (final destination)
+5. Span 4: +4 rows to (13,7) → Island 4 with right turn
+6. Span 5: +3 columns to (13,10) → Island 5 (final destination)
 
-This course requires 5 islands (numbered 0-4): Island 0 at the start, then one island at the end of each bridge-crossing span. Note that spans 2 and 3 both occur on Island 3 (two junctions, no bridge between them).
+This course requires 6 islands (numbered 0-5): Island 0 at the start, then one island at the end of each bridge-crossing span. Note that spans 2 and 3 both occur on Island 3 (two junctions, no bridge between them).
 
 ## Visual Style
 
 - **Aesthetic**: Minimalist design using straight lines and simple colors
 - **Perspective**: Isometric graphics aligned to a square grid
-- **Scrolling**: Vertical scrolling during gameplay
+- **Canvas**: Fixed 800×600 pixel canvas
+- **Scrolling**: Dynamic vertical scrolling (details below)
 - **Colors**:
   - Sky: Light blue (#87CEEB)
   - Island grass (top): Green (#4CAF50)
@@ -56,12 +58,37 @@ This course requires 5 islands (numbered 0-4): Island 0 at the start, then one i
   - Island dirt (left wall): Dark brown (#6B3410)
   - Black outlines where faces meet
 
+## Viewport and Scrolling
+
+**Camera System:**
+- Fixed horizontal framing: Horizontally centered on grid origin (0,0) throughout the game
+- Dynamic vertical scrolling: Follows the car vertically as it progresses through the course
+- Car positioning: Car is kept approximately halfway up the viewport for optimal visibility
+
+**Viewport Dimensions:**
+- Column range: Fixed at -1 to 9 (shows full course width, no horizontal scrolling)
+- Row range: Dynamic window of ~8 rows tall
+- The viewport shows approximately half the course height at any given time
+
+**Scrolling Behavior:**
+- Viewport updates every frame based on car's current row position
+- Desired viewport: Centered on `carRow ± 4 rows` (with 1-row margin)
+- Clamped to course bounds: Never scrolls past top or bottom of the course
+- At start: Shows rows -1 to 9 (car near bottom, includes course start)
+- During gameplay: Scrolls smoothly to keep car vertically centered
+- At end: Shows rows 5 to 15 (car near top, includes course end)
+
+**Technical Implementation:**
+- Course bounds calculated from all island extents (with 1-unit margin)
+- Viewport's `getOffset()` keeps horizontal centered on (0,0) while vertical centers on current row range
+- This ensures only vertical scrolling with no horizontal drift in isometric projection
+
 ## World Layout
 
 - Rectangular "islands" arranged vertically with gaps between them
 - A road zigzags between islands but is missing at each gap
 - Islands extend downward (showing their cliff walls)
-- The view scrolls vertically as the player progresses
+- The viewport scrolls vertically as the car progresses, revealing new islands ahead while hiding passed islands below
 
 ## Controls
 

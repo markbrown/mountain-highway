@@ -68,14 +68,22 @@ class Viewport {
      */
     getOffset() {
         if (this.fixedWidth !== null && this.fixedHeight !== null) {
-            // For fixed canvas size, center the viewport region
-            const centerX = (this.screenMinX + this.screenMaxX) / 2;
-            const centerY = (this.screenMinY + this.screenMaxY) / 2;
+            // For fixed canvas size with vertical scrolling:
+            // - Keep horizontal centered on origin (0,0) in grid space
+            // - Vertical position centers the current viewport region
 
-            return {
-                x: this.canvasWidth / 2 - centerX * this.blockSize,
-                y: this.canvasHeight / 2 - centerY * this.blockSize
-            };
+            // Origin (0,0) in grid space maps to screen space as:
+            const originScreenX = 0;  // col - row = 0 - 0
+            const originScreenY = 0;  // -(col + row)/2 = 0
+
+            // Center horizontally on grid origin
+            const offsetX = this.canvasWidth / 2 - originScreenX * this.blockSize;
+
+            // Center vertically on viewport region
+            const centerY = (this.screenMinY + this.screenMaxY) / 2;
+            const offsetY = this.canvasHeight / 2 - centerY * this.blockSize;
+
+            return { x: offsetX, y: offsetY };
         } else {
             // For auto-sized canvas, position viewport at origin
             return {
