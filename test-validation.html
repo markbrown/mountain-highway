@@ -61,6 +61,35 @@
         .visualization canvas {
             border: 1px solid #ccc;
         }
+        .course-details {
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        .course-details h4 {
+            margin: 10px 0 5px 0;
+            color: #444;
+            font-size: 1em;
+        }
+        .course-details table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+        .course-details th {
+            background: #e0e0e0;
+            padding: 5px 8px;
+            text-align: left;
+            border: 1px solid #ccc;
+        }
+        .course-details td {
+            padding: 5px 8px;
+            border: 1px solid #ddd;
+        }
+        .course-details tr:nth-child(even) {
+            background: #f9f9f9;
+        }
     </style>
 </head>
 <body>
@@ -196,6 +225,52 @@
             }
         }
 
+        // Helper to render course and island details
+        class DetailsRenderer {
+            static renderCourseDetails(course) {
+                const spanDetails = course.getSpanDetails();
+
+                let html = '<h4>Course Configuration</h4>';
+                html += '<table>';
+                html += '<tr><th>Span</th><th>Start</th><th>End</th><th>Length</th><th>Direction</th><th>Junction Type</th></tr>';
+
+                spanDetails.forEach((span, idx) => {
+                    const junctionType = span.junction || 'none (end)';
+                    html += `<tr>`;
+                    html += `<td>${idx}</td>`;
+                    html += `<td>(${span.startRow}, ${span.startCol})</td>`;
+                    html += `<td>(${span.endRow}, ${span.endCol})</td>`;
+                    html += `<td>${span.length}</td>`;
+                    html += `<td>${span.direction}</td>`;
+                    html += `<td>${junctionType}</td>`;
+                    html += `</tr>`;
+                });
+
+                html += '</table>';
+                return html;
+            }
+
+            static renderIslandDetails(islands) {
+                let html = '<h4>Island Configuration</h4>';
+                html += '<table>';
+                html += '<tr><th>#</th><th>Position</th><th>Width</th><th>Height</th><th>Bounds</th></tr>';
+
+                islands.forEach((island, idx) => {
+                    const [row, col, width, height] = island;
+                    html += `<tr>`;
+                    html += `<td>${idx + 1}</td>`;
+                    html += `<td>(${row}, ${col})</td>`;
+                    html += `<td>${width}</td>`;
+                    html += `<td>${height}</td>`;
+                    html += `<td>(${row}, ${col}) to (${row + height}, ${col + width})</td>`;
+                    html += `</tr>`;
+                });
+
+                html += '</table>';
+                return html;
+            }
+        }
+
         // Test runner
         class TestRunner {
             constructor() {
@@ -250,6 +325,13 @@
                         vizDiv.innerHTML = `<em>Unable to render: ${e.message}</em>`;
                     }
                     div.appendChild(vizDiv);
+
+                    // Add course and island details
+                    const detailsDiv = document.createElement('div');
+                    detailsDiv.className = 'course-details';
+                    detailsDiv.innerHTML = DetailsRenderer.renderCourseDetails(test.course);
+                    detailsDiv.innerHTML += DetailsRenderer.renderIslandDetails(test.islands);
+                    div.appendChild(detailsDiv);
 
                     const output = document.createElement('div');
                     output.className = 'console-output';
