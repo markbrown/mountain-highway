@@ -92,11 +92,14 @@ This course requires 5 islands (numbered 0-4): Island 0 at the start, then one i
 - Bridge color: Same dark gray as road (#444444)
 - No border lines on bridge - blends seamlessly with road when horizontal
 - Grows from the exact edge of the island along the road centerline
-- Growth rate: 2 units per second
+- Growth rate: 2 units per second (configurable via `GameConfig.bridge.growthRate`)
 - Minimum length: 0 (instant click/release)
 - Maximum length depends on junction type:
   - **Straight ahead**: Distance to opposite edge of island
   - **Left/Right turn**: Distance to outside corner
+- **Target length**: Gap distance + 0.5 units (extends onto next island for smooth transition)
+- **Animation timing**: Hold time = target length / growth rate
+  - Example: 2.5 unit bridge at 2 units/sec = 1.25 second hold time
 - Bridge stops growing at maximum length but stays vertical until released
 - While growing: displayed as vertical rectangle (rotated 90°)
 - When released: quick animation rotating down to horizontal (0.2 seconds)
@@ -397,11 +400,18 @@ The validation test suite (`test-validation.html`) provides comprehensive debugg
 
 **Validation Checks Implemented:**
 - Islands must be at least 2x2 units
-- Start location and all junctions must be in island interiors (1+ units from edges)
+- Start location and all junctions must be in island interiors (strictly > edge, not equal)
 - Bridge gaps must be at least 1 unit
 - Maximum bridge size must land on next island
 - Bridge tolerance (max - min) must be at least 1 unit
 - Includes test suite with 10 test cases in `test-validation.html`
+
+**Test Suite Design Principles:**
+- Islands must be in course-order in the array (island N reached after N bridges)
+- Test cases should actually fail/pass as intended (not just test validation logic)
+- When setting up failure tests, ensure the specific condition being tested actually triggers
+- Example: "Gap Too Small" needs gap = 0, not gap = 1 (which passes)
+- Visual rendering order: sort islands by `row + col` distance for proper depth ordering
 
 ### Medium Priority
 4. **State machine refactor**: Replace nested setTimeout callbacks with declarative path segment system.

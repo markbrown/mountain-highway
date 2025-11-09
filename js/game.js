@@ -35,10 +35,10 @@ class Game {
 
         // Bridge sequence definition
         this.bridgeSequence = [
-            { holdTime: 1.25, targetLength: 2.5 }, // Bridge 1: island 1 to 2
-            { holdTime: 1.75, targetLength: 3.5 }, // Bridge 2: island 2 to 3
-            { holdTime: 0.75, targetLength: 1.5 }, // Bridge 3: island 3 to 4
-            { holdTime: 1.0, targetLength: 4.5 }   // Bridge 4: island 4 to 5
+            { holdTime: 1.25, targetLength: 2.5 }, // Bridge 0: island 0 to 1
+            { holdTime: 1.75, targetLength: 3.5 }, // Bridge 1: island 1 to 2
+            { holdTime: 0.75, targetLength: 1.5 }, // Bridge 2: island 2 to 3
+            { holdTime: 1.25, targetLength: 2.5 }  // Bridge 3: island 3 to 4
         ];
 
         this.bridgeLength = 0;
@@ -204,8 +204,13 @@ class Game {
                 }, ((7 - this.carCol) / this.carSpeed) * 1000);
             }, ((9 - this.carRow) / this.carSpeed) * 1000);
         } else if (this.currentBridge === 4) {
-            // Just crossed bridge 4, end
-            this.gameState = 'done';
+            // Just crossed bridge 3, drive to final junction at (13,7)
+            this.targetPosition = 13;
+            this.gameState = 'driving';
+            // After reaching final junction, animation is complete
+            setTimeout(() => {
+                this.gameState = 'done';
+            }, ((13 - this.carRow) / this.carSpeed) * 1000);
         } else {
             // Reached end
             this.gameState = 'done';

@@ -500,12 +500,12 @@
             'Minimal valid configuration: 2x2 islands with 1 unit gap',
             () => {
                 const course = new Course();
-                course.addSpan(4, Direction.COLUMN);
+                course.addSpan(3, Direction.COLUMN); // Junction at (1,4)
                 return course;
             },
             () => [
-                [0, 5, 2, 2], // Gap of exactly 1 unit
-                [0, 0, 2, 2],
+                [0, 0, 2, 2],  // Island 0: cols [0, 2)
+                [0, 3, 2, 2],  // Island 1: cols [3, 5) - gap of exactly 1 unit
             ],
             true
         );
@@ -516,12 +516,12 @@
             'Larger islands with bigger gaps should pass',
             () => {
                 const course = new Course();
-                course.addSpan(8, Direction.COLUMN);
+                course.addSpan(10, Direction.COLUMN); // Junction at (1,11) - in island 1 interior
                 return course;
             },
             () => [
-                [0, 10, 5, 5], // Large island, gap of 2 units
-                [0, 0, 5, 5],
+                [0, 0, 5, 5],   // Island 0: cols [0, 5)
+                [0, 10, 5, 5],  // Island 1: cols [10, 15) - gap of 5 units
             ],
             true
         );
