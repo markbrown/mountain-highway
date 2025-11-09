@@ -284,7 +284,10 @@ class CourseValidator {
 
             if (bridge.direction === Direction.COLUMN) {
                 const [startRow, startCol, startWidth, startHeight] = islands[bridge.startIsland];
-                maxBridgeEnd = startCol + startWidth + range.maxSafe;
+                const isPositive = bridge.endPos.col >= bridge.startPos.col;
+                const sign = isPositive ? 1 : -1;
+                const exitEdge = isPositive ? (startCol + startWidth) : startCol;
+                maxBridgeEnd = exitEdge + (sign * range.maxSafe);
 
                 if (maxBridgeEnd < nextCol || maxBridgeEnd > nextCol + nextWidth) {
                     errors.push(new ValidationError(
@@ -294,7 +297,10 @@ class CourseValidator {
                 }
             } else {
                 const [startRow, startCol, startWidth, startHeight] = islands[bridge.startIsland];
-                maxBridgeEnd = startRow + startHeight + range.maxSafe;
+                const isPositive = bridge.endPos.row >= bridge.startPos.row;
+                const sign = isPositive ? 1 : -1;
+                const exitEdge = isPositive ? (startRow + startHeight) : startRow;
+                maxBridgeEnd = exitEdge + (sign * range.maxSafe);
 
                 if (maxBridgeEnd < nextRow || maxBridgeEnd > nextRow + nextHeight) {
                     errors.push(new ValidationError(

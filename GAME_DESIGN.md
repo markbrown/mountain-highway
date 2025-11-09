@@ -544,6 +544,81 @@ The validation test suite (`test-validation.html`) provides comprehensive debugg
 - **Visual Feedback**: Power meter during bridge extension
 - **Win Condition**: Complete course vs. endless mode
 
+## Code Patterns and Best Practices
+
+### Handling Bidirectional Movement
+
+When working with code that involves spans, offsets, or distances, always consider whether the calculation works for both positive and negative directions.
+
+**✅ GOOD - Explicit sign handling:**
+```javascript
+// Multiply by sign for direction-aware offsets
+const offset = sign * 0.5;
+const result = position + offset;
+
+// Exit edge selection based on direction
+const exitEdge = isPositive ? (startCol + width) : startCol;
+const maxBridgeEnd = isPositive ? (exitEdge + distance) : (exitEdge - distance);
+```
+
+**❌ BAD - Hardcoded assumptions:**
+```javascript
+// Assumes positive direction only
+const result = position + 0.5;
+const exitEdge = startCol + width;
+const maxBridgeEnd = exitEdge + distance;
+```
+
+**❌ BAD - Verbose conditionals:**
+```javascript
+// Works but harder to maintain
+const result = isPositive ? position + 0.5 : position - 0.5;
+```
+
+**Key principle**: Use sign multiplication (`sign * value`) instead of conditionals when possible. This makes the directional nature explicit and reduces branching.
+
+### Code Review Checklist for Direction-Aware Code
+
+When adding or modifying code involving positions, offsets, or edges:
+
+1. **Does this work for negative spans?** Test mentally with a negative direction
+2. **Are we assuming "far edge" or "near edge"?** Use `exitEdge` pattern instead
+3. **Does this offset extend in travel direction?** Use sign multiplication
+4. **Are we hardcoding + or -?** Consider if it should be direction-aware
+5. **Test coverage**: Does the test suite include both positive AND negative cases?
+
+### Naming Conventions
+
+**✅ GOOD - Direction-neutral or explicit:**
+- `exitEdge`, `entryEdge` (relationship-based)
+- `travelDirection`, `isPositive`, `sign`
+- `signedLength`, `signedOffset`
+
+**⚠️ RISKY - Assumes direction:**
+- `rightEdge`, `leftEdge` (assumes positive)
+- `bottomEdge`, `topEdge` (assumes positive)
+- `forwardOffset` (ambiguous which way is "forward")
+
+### Common Patterns
+
+**Pattern 1: Choosing the correct edge**
+```javascript
+const isPositive = endPos > startPos;
+const exitEdge = isPositive ? (start + size) : start;
+```
+
+**Pattern 2: Extending past a point in travel direction**
+```javascript
+const extension = sign * 0.5;
+const extendedPos = junctionPos + extension;
+```
+
+**Pattern 3: Calculating signed distance**
+```javascript
+const signedDistance = sign * Math.abs(distance);
+const finalPos = startPos + signedDistance;
+```
+
 ## Development Status
 
 ### Completed
