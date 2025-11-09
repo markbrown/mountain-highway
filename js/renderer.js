@@ -667,4 +667,76 @@ class Renderer {
         // From row 9 to row 10, centered at column 7
         this.drawRoad(junction2Row, junction2Col, islandRow + islandHeight, junction2Col, blockSize);
     }
+
+    /**
+     * Draw a road on an island using Course span data
+     * This method systematically determines the number of rectangles needed
+     * based on the junctions present on the island
+     *
+     * @param {number} islandRow - island near corner row
+     * @param {number} islandCol - island near corner column
+     * @param {number} islandWidth - island width in columns
+     * @param {number} islandHeight - island height in rows
+     * @param {Array} spanSegments - Array of span segments crossing this island
+     *                               Each segment: {startRow, startCol, endRow, endCol, direction, junction}
+     * @param {number} blockSize - size of each grid square in pixels
+     */
+    drawIslandRoadFromSpans(islandRow, islandCol, islandWidth, islandHeight, spanSegments, blockSize) {
+        if (spanSegments.length === 0) {
+            // No road on this island (shouldn't happen in practice)
+            return;
+        }
+
+        // If all segments have the same direction (straight ahead), combine into one rectangle
+        const allSameDirection = spanSegments.every(seg => seg.direction === spanSegments[0].direction);
+
+        if (allSameDirection && spanSegments.length > 1) {
+            // Straight ahead case: single rectangle from first start to last end
+            const firstSegment = spanSegments[0];
+            const lastSegment = spanSegments[spanSegments.length - 1];
+
+            if (firstSegment.direction === Direction.COLUMN) {
+                this.drawRoad(
+                    firstSegment.startRow, firstSegment.startCol,
+                    lastSegment.endRow, lastSegment.endCol,
+                    blockSize
+                );
+            } else {
+                this.drawRoad(
+                    firstSegment.startRow, firstSegment.startCol,
+                    lastSegment.endRow, lastSegment.endCol,
+                    blockSize
+                );
+            }
+            return;
+        }
+
+        // Multiple rectangles needed (turns present)
+        spanSegments.forEach((segment, index) => {
+            const isFirstSegment = (index === 0);
+            const isLastSegment = (index === spanSegments.length - 1);
+            const nextSegment = isLastSegment ? null : spanSegments[index + 1];
+
+            // Check if there's a turn after this segment
+            const hasTurnAfter = nextSegment && (nextSegment.direction !== segment.direction);
+
+            if (segment.direction === Direction.COLUMN) {
+                // Road travels in column direction (rightward)
+                const startCol = segment.startCol;
+                // Extend 0.5 past junction only if there's a turn after this segment
+                const endCol = hasTurnAfter ? segment.endCol + 0.5 : segment.endCol;
+                const row = segment.startRow;
+
+                this.drawRoad(row, startCol, row, endCol, blockSize);
+            } else {
+                // Road travels in row direction (upward)
+                const startRow = segment.startRow;
+                // Extend 0.5 past junction only if there's a turn after this segment
+                const endRow = hasTurnAfter ? segment.endRow + 0.5 : segment.endRow;
+                const col = segment.startCol;
+
+                this.drawRoad(startRow, col, endRow, col, blockSize);
+            }
+        });
+    }
 }

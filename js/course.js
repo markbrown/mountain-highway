@@ -125,6 +125,72 @@ class Course {
 
         return details;
     }
+
+    /**
+     * Get road segments for a specific island
+     * Each island may have one or more span segments that need to be rendered
+     * Segments are clipped to the portion that's actually on the island
+     *
+     * @param {number} islandIndex - Island index (0-based, course-order)
+     * @param {Array} islands - Array of island data [row, col, width, height]
+     * @returns {Array} Array of road segments: {startRow, startCol, endRow, endCol, direction}
+     */
+    getRoadSegmentsForIsland(islandIndex, islands) {
+        const spanDetails = this.getSpanDetails();
+        const segments = [];
+
+        const [islandRow, islandCol, islandWidth, islandHeight] = islands[islandIndex];
+        const islandMaxRow = islandRow + islandHeight;
+        const islandMaxCol = islandCol + islandWidth;
+
+        // Find all spans that pass through this island
+        spanDetails.forEach((span, idx) => {
+            // Check if this span intersects with the island
+            const spanIntersects =
+                (span.startRow <= islandMaxRow && span.endRow >= islandRow &&
+                 span.startCol <= islandMaxCol && span.endCol >= islandCol);
+
+            if (!spanIntersects) return;
+
+            // Clip the span to the island boundaries
+            let segmentStart, segmentEnd;
+
+            if (span.direction === Direction.COLUMN) {
+                // Span travels in column direction (row stays constant)
+                // Clip to island column boundaries
+                segmentStart = {
+                    row: span.startRow,
+                    col: Math.max(span.startCol, islandCol)
+                };
+                segmentEnd = {
+                    row: span.endRow,
+                    col: Math.min(span.endCol, islandMaxCol)
+                };
+            } else {
+                // Span travels in row direction (column stays constant)
+                // Clip to island row boundaries
+                segmentStart = {
+                    row: Math.max(span.startRow, islandRow),
+                    col: span.startCol
+                };
+                segmentEnd = {
+                    row: Math.min(span.endRow, islandMaxRow),
+                    col: span.endCol
+                };
+            }
+
+            // Add the clipped segment
+            segments.push({
+                startRow: segmentStart.row,
+                startCol: segmentStart.col,
+                endRow: segmentEnd.row,
+                endCol: segmentEnd.col,
+                direction: span.direction
+            });
+        });
+
+        return segments;
+    }
 }
 
 /**

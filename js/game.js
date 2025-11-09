@@ -234,30 +234,31 @@ class Game {
 
         const wallHeight = GameConfig.island.wallHeight;
 
-        // Island rendering data: [row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, islandNum, hasComplexRoad]
-        const islandRenderData = [
-            [0, 0, 2, 2, 'column', 'column', 1, 1, 0, false],           // Island 0: Start
-            [0, 4, 2, 2, 'column', 'row', 1, 5, 1, false],              // Island 1: After bridge 0, left turn
-            [5, 4, 2, 2, 'row', 'row', 6, 5, 2, false],                 // Island 2: After bridge 1, straight ahead
-            [8, 4, 4, 2, 'row', 'row', 9, 5, 3, true],                  // Island 3: After bridge 2, complex (2 junctions)
-            [12, 6, 2, 2, 'row', 'row', 13, 7, 4, false],               // Island 4: After bridge 3, final destination
+        // Island data (course-order): [row, col, width, height]
+        const islandData = [
+            [0, 0, 2, 2],      // Island 0: Start
+            [0, 4, 2, 2],      // Island 1: After bridge 0
+            [5, 4, 2, 2],      // Island 2: After bridge 1
+            [8, 4, 4, 2],      // Island 3: After bridge 2
+            [12, 6, 2, 2],     // Island 4: After bridge 3
         ];
 
         // Sort by row (descending) for proper back-to-front rendering
-        const sortedRenderData = [...islandRenderData].sort((a, b) => b[0] - a[0]);
+        const sortedIndices = islandData
+            .map((island, idx) => ({island, idx}))
+            .sort((a, b) => b.island[0] - a.island[0])
+            .map(item => item.idx);
 
         // Render each island completely (colors → road → lines) from farthest to nearest
-        sortedRenderData.forEach(([row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, islandNum, hasComplexRoad]) => {
+        sortedIndices.forEach(islandIndex => {
+            const [row, col, width, height] = islandData[islandIndex];
+
             // Step 1: Draw island base colors (green and brown)
             const corners = this.renderer.drawIslandColors(row, col, width, height, wallHeight, blockSize);
 
-            // Step 2: Draw road on this island (grey)
-            if (hasComplexRoad) {
-                // Island 3 has complex road: row→column→row (right turn then left turn)
-                this.renderer.drawComplexRoadTwoTurns(row, col, width, height, 9, 5, 9, 7, blockSize);
-            } else {
-                this.renderer.drawIslandRoad(row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, blockSize);
-            }
+            // Step 2: Draw road on this island (grey) using Course data
+            const roadSegments = this.course.getRoadSegmentsForIsland(islandIndex, islandData);
+            this.renderer.drawIslandRoadFromSpans(row, col, width, height, roadSegments, blockSize);
 
             // Step 3: Draw island outlines (black lines)
             this.renderer.drawIslandOutlines(corners);
@@ -315,7 +316,7 @@ class Game {
 
         // Draw debug overlays (on top of everything)
         if (this.showIslandNumbers) {
-            islandRenderData.forEach(([row, col, width, height, entryDir, exitDir, junctionRow, junctionCol, islandNum]) => {
+            islandData.forEach(([row, col, width, height], islandNum) => {
                 this.debug.drawIslandNumber(row, col, width, height, islandNum, blockSize);
             });
         }
