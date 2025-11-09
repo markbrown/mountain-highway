@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Validation Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: 30px; }
+        .test-case {
+            background: #f5f5f5;
+            border-left: 4px solid #999;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .test-case.pass {
+            border-left-color: #4CAF50;
+            background: #f1f8f4;
+        }
+        .test-case.fail {
+            border-left-color: #f44336;
+            background: #fef1f0;
+        }
+        .test-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+        .test-description {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+        .console-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            margin-top: 10px;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+    </style>
+</head>
+<body>
+    <h1>Course Validation Test Suite</h1>
+    <p>Testing the course validation system with various valid and invalid configurations.</p>
+
+    <div id="test-results"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/course.js"></script>
+    <script src="js/validation.js"></script>
+    <script>
+        // Test runner
+        class TestRunner {
+            constructor() {
+                this.results = [];
+            }
+
+            test(name, description, courseFn, islandsFn, shouldPass) {
+                const course = courseFn();
+                const islands = islandsFn();
+
+                const result = CourseValidator.validate(course, islands);
+
+                const passed = result.valid === shouldPass;
+
+                this.results.push({
+                    name,
+                    description,
+                    passed,
+                    shouldPass,
+                    result,
+                    course,
+                    islands
+                });
+
+                return passed;
+            }
+
+            renderResults() {
+                const container = document.getElementById('test-results');
+
+                this.results.forEach(test => {
+                    const div = document.createElement('div');
+                    div.className = `test-case ${test.passed ? 'pass' : 'fail'}`;
+
+                    const name = document.createElement('div');
+                    name.className = 'test-name';
+                    name.textContent = `${test.passed ? '✅' : '❌'} ${test.name}`;
+                    div.appendChild(name);
+
+                    const desc = document.createElement('div');
+                    desc.className = 'test-description';
+                    desc.textContent = test.description;
+                    div.appendChild(desc);
+
+                    const output = document.createElement('div');
+                    output.className = 'console-output';
+
+                    if (test.result.valid) {
+                        output.innerHTML = '<span class="success">✅ All checks passed!</span>';
+                    } else {
+                        output.innerHTML = `<span class="error">❌ Found ${test.result.errors.length} error(s):</span>\n`;
+                        test.result.errors.forEach(error => {
+                            output.innerHTML += `  - ${error.toString()}\n`;
+                        });
+                    }
+
+                    div.appendChild(output);
+                    container.appendChild(div);
+                });
+
+                // Summary
+                const passed = this.results.filter(r => r.passed).length;
+                const total = this.results.length;
+
+                const summary = document.createElement('h2');
+                summary.innerHTML = `Test Summary: ${passed}/${total} tests passed`;
+                summary.style.color = passed === total ? '#4CAF50' : '#f44336';
+                container.insertBefore(summary, container.firstChild);
+            }
+        }
+
+        // Run tests
+        const runner = new TestRunner();
+
+        // Test 1: Valid configuration (current game)
+        runner.test(
+            'Test 1: Valid Course',
+            'The current game configuration should pass all validation checks',
+            () => createExampleCourse(),
+            () => [
+                [8, 4, 4, 2], // Island 4
+                [5, 4, 2, 2], // Island 3
+                [0, 4, 2, 2], // Island 2
+                [0, 0, 2, 2], // Island 1
+            ],
+            true
+        );
+
+        // Test 2: Island too small (width)
+        runner.test(
+            'Test 2: Island Too Narrow',
+            'Island with width < 2 should fail validation',
+            () => createExampleCourse(),
+            () => [
+                [8, 4, 4, 2],
+                [5, 4, 2, 2],
+                [0, 4, 1, 2], // Width = 1 (too small)
+                [0, 0, 2, 2],
+            ],
+            false
+        );
+
+        // Test 3: Island too small (height)
+        runner.test(
+            'Test 3: Island Too Short',
+            'Island with height < 2 should fail validation',
+            () => createExampleCourse(),
+            () => [
+                [8, 4, 4, 2],
+                [5, 4, 2, 1], // Height = 1 (too small)
+                [0, 4, 2, 2],
+                [0, 0, 2, 2],
+            ],
+            false
+        );
+
+        // Test 4: Junction on edge
+        runner.test(
+            'Test 4: Junction On Edge',
+            'Junction exactly on island edge should fail (must be 1+ units from edge)',
+            () => {
+                const course = new Course();
+                course.addSpan(4, Direction.COLUMN);
+                course.addSpan(5, Direction.ROW);
+                return course;
+            },
+            () => [
+                [0, 4, 2, 7], // Island extends to row 7, junction at row 6 is on edge
+                [0, 0, 2, 2],
+            ],
+            false
+        );
+
+        // Test 5: Gap too small
+        runner.test(
+            'Test 5: Gap Too Small',
+            'Gap between islands < 1 unit should fail',
+            () => {
+                const course = new Course();
+                course.addSpan(3, Direction.COLUMN);
+                return course;
+            },
+            () => [
+                [0, 3, 2, 2], // Gap of 0.5 units (too small)
+                [0, 0, 2, 2],
+            ],
+            false
+        );
+
+        // Test 6: Bridge tolerance too small
+        runner.test(
+            'Test 6: Bridge Tolerance Too Small',
+            'Difference between min and max bridge size < 1 unit should fail',
+            () => {
+                const course = new Course();
+                course.addSpan(4, Direction.COLUMN);
+                return course;
+            },
+            () => [
+                [0, 4, 1.5, 2], // Small island = small tolerance
+                [0, 0, 2, 2],
+            ],
+            false
+        );
+
+        // Test 7: Start position not on island
+        runner.test(
+            'Test 7: Start Position Off Island',
+            'Start position (1,1) not on any island should fail',
+            () => createExampleCourse(),
+            () => [
+                [8, 4, 4, 2],
+                [5, 4, 2, 2],
+                [0, 4, 2, 2],
+                [3, 3, 2, 2], // Doesn't cover (1,1)
+            ],
+            false
+        );
+
+        // Test 8: Junction not on any island
+        runner.test(
+            'Test 8: Junction In Gap',
+            'Junction not on any island should fail',
+            () => {
+                const course = new Course();
+                course.addSpan(10, Direction.COLUMN); // Ends at (1,11) - in gap
+                return course;
+            },
+            () => [
+                [0, 15, 2, 2], // Far away
+                [0, 0, 2, 2],
+            ],
+            false
+        );
+
+        // Test 9: Valid minimal configuration
+        runner.test(
+            'Test 9: Valid Minimal Course',
+            'Minimal valid configuration: 2x2 islands with 1 unit gap',
+            () => {
+                const course = new Course();
+                course.addSpan(4, Direction.COLUMN);
+                return course;
+            },
+            () => [
+                [0, 5, 2, 2], // Gap of exactly 1 unit
+                [0, 0, 2, 2],
+            ],
+            true
+        );
+
+        // Test 10: Valid larger islands
+        runner.test(
+            'Test 10: Valid Large Islands',
+            'Larger islands with bigger gaps should pass',
+            () => {
+                const course = new Course();
+                course.addSpan(8, Direction.COLUMN);
+                return course;
+            },
+            () => [
+                [0, 10, 5, 5], // Large island, gap of 2 units
+                [0, 0, 5, 5],
+            ],
+            true
+        );
+
+        // Render all results
+        runner.renderResults();
+
+        // Log to console as well
+        console.log(`\n=== Test Suite Complete ===`);
+        console.log(`Passed: ${runner.results.filter(r => r.passed).length}/${runner.results.length}`);
+    </script>
+</body>
+</html>

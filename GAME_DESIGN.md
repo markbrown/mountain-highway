@@ -160,8 +160,10 @@ For **turns** (left or right):
 - `js/config.js` - Game configuration and constants (all magic numbers centralized)
 - `js/renderer.js` - Core rendering engine (islands, isometric projection)
 - `js/course.js` - Course definition and management (spans, junctions, directions)
+- `js/validation.js` - Course and island validation system
 - `js/game.js` - Game loop, island data, and main logic
 - `js/debug.js` - Debug utilities (grid, island numbering)
+- `test-validation.html` - Validation test suite with 10 test cases
 
 ### Game Coordinate System
 The game uses a **row/column** coordinate system distinct from screen coordinates:
@@ -305,7 +307,15 @@ Both debug features are disabled by default and render on a separate layer above
 ### High Priority
 1. ~~**Unify road rendering approach**: Refactor `drawIslandRoad()` to use rectangle-based approach like `drawComplexRoadTwoTurns()`. Eliminate complex polygon calculations.~~ ✅ **Completed**
 2. ~~**Extract magic numbers**: Define constants for values like car half-length (0.3), stopping margin (0.05), road half-width (0.5).~~ ✅ **Completed** - Created `config.js` with all game parameters centralized
-3. **Course validation**: Add validation to check that course and islands are consistent (islands large enough for junctions, junction points inside boundaries, gaps match spans).
+3. ~~**Course validation**: Add validation to check that course and islands are consistent (islands large enough for junctions, junction points inside boundaries, gaps match spans).~~ ✅ **Completed** - Created `validation.js` with comprehensive validation system
+
+**Validation Checks Implemented:**
+- Islands must be at least 2x2 units
+- Start location and all junctions must be in island interiors (1+ units from edges)
+- Bridge gaps must be at least 1 unit
+- Maximum bridge size must land on next island
+- Bridge tolerance (max - min) must be at least 1 unit
+- Includes test suite with 10 test cases in `test-validation.html`
 
 ### Medium Priority
 4. **State machine refactor**: Replace nested setTimeout callbacks with declarative path segment system.

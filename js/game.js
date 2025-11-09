@@ -53,6 +53,18 @@ class Game {
         console.log('Course end:', this.course.getEndLocation());
         console.log('Span details:', this.course.getSpanDetails());
 
+        // Get island data for validation
+        const islands = [
+            [8, 4, 4, 2], // Island 4
+            [5, 4, 2, 2], // Island 3
+            [0, 4, 2, 2], // Island 2
+            [0, 0, 2, 2], // Island 1
+        ];
+
+        // Validate course and islands
+        const validationResult = CourseValidator.validate(this.course, islands);
+        CourseValidator.printResults(validationResult, 'Course Validation');
+
         // Initialize: car drives to edge of first island (column 2 - car half-length - stopping margin)
         this.targetPosition = 2 - GameConfig.car.halfLength - GameConfig.car.stoppingMargin;
         this.gameState = 'driving';
