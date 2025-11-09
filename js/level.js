@@ -62,17 +62,23 @@ class Level {
 
             if (bridge.direction === Direction.COLUMN) {
                 // Bridge extends in column direction (horizontal on screen)
+                // Check if moving in positive or negative column direction
+                const isPositive = bridge.endPos.col >= bridge.startPos.col;
                 return {
                     baseRow: bridge.startPos.row,
-                    edgeCol: startCol + startWidth,
-                    direction: 'column'
+                    edgeCol: isPositive ? (startCol + startWidth) : startCol,
+                    direction: 'column',
+                    isPositive: isPositive
                 };
             } else {
                 // Bridge extends in row direction (vertical on screen)
+                // Check if moving in positive or negative row direction
+                const isPositive = bridge.endPos.row >= bridge.startPos.row;
                 return {
-                    edgeRow: startRow + startHeight,
+                    edgeRow: isPositive ? (startRow + startHeight) : startRow,
                     baseCol: bridge.startPos.col,
-                    direction: 'row'
+                    direction: 'row',
+                    isPositive: isPositive
                 };
             }
         });

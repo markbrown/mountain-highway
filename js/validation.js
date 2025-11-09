@@ -109,7 +109,7 @@ class CourseValidator {
      * @param {string} direction - 'row' or 'column'
      * @param {Array} startIsland - Island data where span starts
      * @param {Array} endIsland - Island data where span ends
-     * @param {string} junctionType - JunctionType (left, right, straight, or null for end)
+     * @param {string} junctionType - JunctionType (turn, straight, or null for end)
      * @returns {Object} {minSafe, maxSafe, needsBridge}
      */
     static calculateBridgeRange(spanStart, spanEnd, direction, startIsland, endIsland, junctionType = null) {
@@ -126,46 +126,83 @@ class CourseValidator {
 
         if (direction === Direction.COLUMN) {
             // Bridge extends in column direction
-            // Start island exit edge
             const [startRow, startCol, startWidth, startHeight] = startIsland;
-            const exitEdge = startCol + startWidth;
 
-            // End island entry edge
-            const entryEdge = endCol;
+            // Determine if traveling in positive or negative direction
+            const isPositive = spanEnd.col >= spanStart.col;
 
-            // Minimum: must reach entry edge of next island
-            minSafe = entryEdge - exitEdge;
+            let exitEdge, entryEdge;
+            if (isPositive) {
+                // Positive direction: exit from far edge, enter at near edge
+                exitEdge = startCol + startWidth;
+                entryEdge = endCol;
+            } else {
+                // Negative direction: exit from near edge, enter at far edge
+                exitEdge = startCol;
+                entryEdge = endCol + endWidth;
+            }
+
+            // Minimum: must reach entry edge of next island (always positive)
+            minSafe = Math.abs(entryEdge - exitEdge);
 
             // Maximum: depends on junction type
-            // - Turn junction: can extend 0.5 units past junction
-            // - Straight junction or end of course: can extend 1 unit past junction
             const isStraightOrEnd = (junctionType === JunctionType.STRAIGHT || junctionType === null);
             const extensionPast = isStraightOrEnd ? 1.0 : 0.5;
 
-            if (spanEnd.col === entryEdge) {
-                // Junction at entry edge - can extend across entire island
-                maxSafe = (endCol + endWidth) - exitEdge;
+            if (isPositive) {
+                if (spanEnd.col === entryEdge) {
+                    // Junction at entry edge - can extend across entire island
+                    maxSafe = (endCol + endWidth) - exitEdge;
+                } else {
+                    // Junction inside island - max extends past junction
+                    maxSafe = (spanEnd.col + extensionPast) - exitEdge;
+                }
             } else {
-                // Junction inside island - max extends past junction based on type
-                maxSafe = (spanEnd.col + extensionPast) - exitEdge;
+                if (spanEnd.col === entryEdge - endWidth) {
+                    // Junction at entry edge - can extend across entire island
+                    maxSafe = exitEdge - endCol;
+                } else {
+                    // Junction inside island - max extends past junction
+                    maxSafe = exitEdge - (spanEnd.col - extensionPast);
+                }
             }
         } else {
             // Bridge extends in row direction
             const [startRow, startCol, startWidth, startHeight] = startIsland;
-            const exitEdge = startRow + startHeight;
 
-            const entryEdge = endRow;
+            // Determine if traveling in positive or negative direction
+            const isPositive = spanEnd.row >= spanStart.row;
 
-            minSafe = entryEdge - exitEdge;
+            let exitEdge, entryEdge;
+            if (isPositive) {
+                // Positive direction: exit from far edge, enter at near edge
+                exitEdge = startRow + startHeight;
+                entryEdge = endRow;
+            } else {
+                // Negative direction: exit from near edge, enter at far edge
+                exitEdge = startRow;
+                entryEdge = endRow + endHeight;
+            }
+
+            // Minimum: must reach entry edge of next island (always positive)
+            minSafe = Math.abs(entryEdge - exitEdge);
 
             // Maximum: depends on junction type
             const isStraightOrEnd = (junctionType === JunctionType.STRAIGHT || junctionType === null);
             const extensionPast = isStraightOrEnd ? 1.0 : 0.5;
 
-            if (spanEnd.row === entryEdge) {
-                maxSafe = (endRow + endHeight) - exitEdge;
+            if (isPositive) {
+                if (spanEnd.row === entryEdge) {
+                    maxSafe = (endRow + endHeight) - exitEdge;
+                } else {
+                    maxSafe = (spanEnd.row + extensionPast) - exitEdge;
+                }
             } else {
-                maxSafe = (spanEnd.row + extensionPast) - exitEdge;
+                if (spanEnd.row === entryEdge - endHeight) {
+                    maxSafe = exitEdge - endRow;
+                } else {
+                    maxSafe = exitEdge - (spanEnd.row - extensionPast);
+                }
             }
         }
 

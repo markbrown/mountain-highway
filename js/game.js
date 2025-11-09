@@ -187,16 +187,38 @@ class Game {
         if (this.gameState === 'driving') {
             // Move car toward target position
             if (this.carDirection === 'column') {
-                this.carCol += this.carSpeed * deltaTime;
-                if (this.carCol >= this.targetPosition) {
-                    this.carCol = this.targetPosition;
-                    this.gameState = 'segment_done';
+                // Check if we're moving forward or backward
+                if (this.targetPosition >= this.carCol) {
+                    // Moving forward (positive direction)
+                    this.carCol += this.carSpeed * deltaTime;
+                    if (this.carCol >= this.targetPosition) {
+                        this.carCol = this.targetPosition;
+                        this.gameState = 'segment_done';
+                    }
+                } else {
+                    // Moving backward (negative direction)
+                    this.carCol -= this.carSpeed * deltaTime;
+                    if (this.carCol <= this.targetPosition) {
+                        this.carCol = this.targetPosition;
+                        this.gameState = 'segment_done';
+                    }
                 }
             } else {
-                this.carRow += this.carSpeed * deltaTime;
-                if (this.carRow >= this.targetPosition) {
-                    this.carRow = this.targetPosition;
-                    this.gameState = 'segment_done';
+                // Check if we're moving forward or backward
+                if (this.targetPosition >= this.carRow) {
+                    // Moving forward (positive direction)
+                    this.carRow += this.carSpeed * deltaTime;
+                    if (this.carRow >= this.targetPosition) {
+                        this.carRow = this.targetPosition;
+                        this.gameState = 'segment_done';
+                    }
+                } else {
+                    // Moving backward (negative direction)
+                    this.carRow -= this.carSpeed * deltaTime;
+                    if (this.carRow <= this.targetPosition) {
+                        this.carRow = this.targetPosition;
+                        this.gameState = 'segment_done';
+                    }
                 }
             }
         } else if (this.gameState === 'turning') {
@@ -213,13 +235,16 @@ class Game {
             }
         } else if (this.gameState === 'bridge_slamming') {
             this.stateProgress += deltaTime;
+            const pos = this.bridgePositions[this.currentSegment.bridgeIndex];
 
             if (this.stateProgress >= this.slamDuration) {
-                this.bridgeRotation = Math.PI / 2; // Horizontal
+                // Final rotation depends on bridge direction
+                this.bridgeRotation = pos.isPositive ? (Math.PI / 2) : (-Math.PI / 2);
                 this.startNextSegment();
             } else {
                 const t = this.stateProgress / this.slamDuration;
-                this.bridgeRotation = (Math.PI / 2) * t;
+                // Rotate in opposite direction for negative bridges
+                this.bridgeRotation = pos.isPositive ? (Math.PI / 2) * t : (-Math.PI / 2) * t;
             }
         } else if (this.gameState === 'segment_done') {
             // Start next segment
@@ -324,9 +349,9 @@ class Game {
             this.debug.drawBridgeZones(this.course, this.islands, blockSize);
         }
 
-        // Draw all bridges (completed and current)
-        this.pathSegments.forEach((segment, idx) => {
-            if (segment.type !== 'bridge') return;
+        // Helper function to draw a bridge
+        const drawBridge = (segment, idx) => {
+            if (segment.type !== 'bridge') return false;
 
             const bridgeIndex = segment.bridgeIndex;
             const pos = this.bridgePositions[bridgeIndex];
@@ -364,16 +389,64 @@ class Game {
                 }
             } else if (isCompleted) {
                 // Draw completed bridge (horizontal)
+                // Base offset and length direction depend on bridge direction
                 if (pos.direction === 'column') {
-                    this.renderer.drawHorizontalBridge(pos.baseRow, pos.edgeCol - baseOffset, pos.direction, bridgeData.targetLength + baseOffset, blockSize);
+                    const offsetCol = pos.isPositive ? (pos.edgeCol - baseOffset) : (pos.edgeCol + baseOffset);
+                    const bridgeLength = pos.isPositive ? (bridgeData.targetLength + baseOffset) : -(bridgeData.targetLength + baseOffset);
+                    this.renderer.drawHorizontalBridge(pos.baseRow, offsetCol, pos.direction, bridgeLength, blockSize);
                 } else {
-                    this.renderer.drawHorizontalBridge(pos.edgeRow - baseOffset, pos.baseCol, pos.direction, bridgeData.targetLength + baseOffset, blockSize);
+                    const offsetRow = pos.isPositive ? (pos.edgeRow - baseOffset) : (pos.edgeRow + baseOffset);
+                    const bridgeLength = pos.isPositive ? (bridgeData.targetLength + baseOffset) : -(bridgeData.targetLength + baseOffset);
+                    this.renderer.drawHorizontalBridge(offsetRow, pos.baseCol, pos.direction, bridgeLength, blockSize);
                 }
+            }
+            return true;
+        };
+
+        // Draw all completed bridges (car drives over these)
+        this.pathSegments.forEach((segment, idx) => {
+            if (segment.type !== 'bridge') return;
+
+            const bridgeIndex = segment.bridgeIndex;
+            const isCurrentBridge = (this.currentSegment === segment &&
+                                     (this.gameState === 'bridge_growing' || this.gameState === 'bridge_slamming'));
+
+            // Draw if it's completed (not currently animating)
+            if (!isCurrentBridge) {
+                drawBridge(segment, idx);
+            }
+        });
+
+        // Draw positive direction bridges being animated (behind car)
+        this.pathSegments.forEach((segment, idx) => {
+            if (segment.type !== 'bridge') return;
+
+            const pos = this.bridgePositions[segment.bridgeIndex];
+            const isCurrentBridge = (this.currentSegment === segment &&
+                                     (this.gameState === 'bridge_growing' || this.gameState === 'bridge_slamming'));
+
+            // Draw if it's currently animating and positive direction
+            if (isCurrentBridge && pos.isPositive) {
+                drawBridge(segment, idx);
             }
         });
 
         // Draw car at current position
         this.renderer.drawCar(this.carRow, this.carCol, this.carDirection, blockSize);
+
+        // Draw negative direction bridges being animated (in front of car)
+        this.pathSegments.forEach((segment, idx) => {
+            if (segment.type !== 'bridge') return;
+
+            const pos = this.bridgePositions[segment.bridgeIndex];
+            const isCurrentBridge = (this.currentSegment === segment &&
+                                     (this.gameState === 'bridge_growing' || this.gameState === 'bridge_slamming'));
+
+            // Draw if it's currently animating and negative direction
+            if (isCurrentBridge && !pos.isPositive) {
+                drawBridge(segment, idx);
+            }
+        });
 
         // Draw debug overlays (on top of everything)
         if (this.showIslandNumbers) {

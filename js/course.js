@@ -8,9 +8,8 @@ const Direction = {
 
 // Junction types
 const JunctionType = {
-    LEFT: 'left',
-    RIGHT: 'right',
-    STRAIGHT: 'straight'
+    TURN: 'turn',        // Direction changes at junction
+    STRAIGHT: 'straight' // Direction continues unchanged
 };
 
 /**
@@ -18,8 +17,23 @@ const JunctionType = {
  */
 class Span {
     constructor(length, direction) {
-        this.length = length;           // Number of grid squares
-        this.direction = direction;     // Direction.COLUMN or Direction.ROW
+        this.length = Math.abs(length);      // Number of grid squares (always positive)
+        this.direction = direction;          // Direction.COLUMN or Direction.ROW
+        this.sign = Math.sign(length) || 1;  // Direction of travel: 1 (positive) or -1 (negative)
+    }
+
+    /**
+     * Check if this span travels in positive direction
+     */
+    get isPositive() {
+        return this.sign > 0;
+    }
+
+    /**
+     * Get the signed length (positive or negative)
+     */
+    get signedLength() {
+        return this.length * this.sign;
     }
 }
 
@@ -82,9 +96,9 @@ class Course {
      */
     calculateSpanEnd(startRow, startCol, span) {
         if (span.direction === Direction.COLUMN) {
-            return { row: startRow, col: startCol + span.length };
+            return { row: startRow, col: startCol + span.signedLength };
         } else { // Direction.ROW
-            return { row: startRow + span.length, col: startCol };
+            return { row: startRow + span.signedLength, col: startCol };
         }
     }
 
@@ -97,10 +111,8 @@ class Course {
     getJunctionType(currentSpan, nextSpan) {
         if (currentSpan.direction === nextSpan.direction) {
             return JunctionType.STRAIGHT;
-        } else if (currentSpan.direction === Direction.COLUMN && nextSpan.direction === Direction.ROW) {
-            return JunctionType.LEFT;
-        } else { // currentSpan.direction === Direction.ROW && nextSpan.direction === Direction.COLUMN
-            return JunctionType.RIGHT;
+        } else {
+            return JunctionType.TURN;
         }
     }
 
@@ -147,6 +159,7 @@ class Course {
                 endCol: end.col,
                 length: span.length,
                 direction: span.direction,
+                sign: span.sign,
                 junction: junction
             });
 
@@ -183,10 +196,16 @@ class Course {
 
         // Find all spans that pass through this island
         spanDetails.forEach((span, idx) => {
+            // For intersection check, we need min/max regardless of direction
+            const spanMinRow = Math.min(span.startRow, span.endRow);
+            const spanMaxRow = Math.max(span.startRow, span.endRow);
+            const spanMinCol = Math.min(span.startCol, span.endCol);
+            const spanMaxCol = Math.max(span.startCol, span.endCol);
+
             // Check if this span intersects with the island
             const spanIntersects =
-                (span.startRow <= islandMaxRow && span.endRow >= islandRow &&
-                 span.startCol <= islandMaxCol && span.endCol >= islandCol);
+                (spanMinRow <= islandMaxRow && spanMaxRow >= islandRow &&
+                 spanMinCol <= islandMaxCol && spanMaxCol >= islandCol);
 
             if (!spanIntersects) return;
 
@@ -196,44 +215,48 @@ class Course {
             if (span.direction === Direction.COLUMN) {
                 // Span travels in column direction (row stays constant)
                 // Clip to island column boundaries
+                const isPositive = span.sign > 0;
+
                 segmentStart = {
                     row: span.startRow,
-                    col: Math.max(span.startCol, islandCol)
+                    col: isPositive ? Math.max(span.startCol, islandCol) : Math.min(span.startCol, islandMaxCol)
                 };
                 segmentEnd = {
                     row: span.endRow,
-                    col: Math.min(span.endCol, islandMaxCol)
+                    col: isPositive ? Math.min(span.endCol, islandMaxCol) : Math.max(span.endCol, islandCol)
                 };
 
                 // Special case: extend to edges for start/end islands
                 if (isStartIsland && span.startCol === this.startCol) {
                     // First span on start island: extend to near edge
-                    segmentStart.col = islandCol;
+                    segmentStart.col = isPositive ? islandCol : islandMaxCol;
                 }
                 if (isEndIsland && idx === spanDetails.length - 1) {
                     // Last span on end island: extend to far edge
-                    segmentEnd.col = islandMaxCol;
+                    segmentEnd.col = isPositive ? islandMaxCol : islandCol;
                 }
             } else {
                 // Span travels in row direction (column stays constant)
                 // Clip to island row boundaries
+                const isPositive = span.sign > 0;
+
                 segmentStart = {
-                    row: Math.max(span.startRow, islandRow),
+                    row: isPositive ? Math.max(span.startRow, islandRow) : Math.min(span.startRow, islandMaxRow),
                     col: span.startCol
                 };
                 segmentEnd = {
-                    row: Math.min(span.endRow, islandMaxRow),
+                    row: isPositive ? Math.min(span.endRow, islandMaxRow) : Math.max(span.endRow, islandRow),
                     col: span.endCol
                 };
 
                 // Special case: extend to edges for start/end islands
                 if (isStartIsland && span.startRow === this.startRow) {
                     // First span on start island: extend to near edge
-                    segmentStart.row = islandRow;
+                    segmentStart.row = isPositive ? islandRow : islandMaxRow;
                 }
                 if (isEndIsland && idx === spanDetails.length - 1) {
                     // Last span on end island: extend to far edge
-                    segmentEnd.row = islandMaxRow;
+                    segmentEnd.row = isPositive ? islandMaxRow : islandRow;
                 }
             }
 
@@ -323,10 +346,22 @@ class Course {
                 let edgeRow, edgeCol;
 
                 if (span.direction === Direction.COLUMN) {
-                    edgeCol = islandCol + islandWidth - GameConfig.car.halfLength - GameConfig.car.stoppingMargin;
+                    if (span.sign > 0) {
+                        // Exit from far edge (right side)
+                        edgeCol = islandCol + islandWidth - GameConfig.car.halfLength - GameConfig.car.stoppingMargin;
+                    } else {
+                        // Exit from near edge (left side)
+                        edgeCol = islandCol + GameConfig.car.halfLength + GameConfig.car.stoppingMargin;
+                    }
                     edgeRow = currentRow;
                 } else {
-                    edgeRow = islandRow + islandHeight - GameConfig.car.halfLength - GameConfig.car.stoppingMargin;
+                    if (span.sign > 0) {
+                        // Exit from far edge (bottom)
+                        edgeRow = islandRow + islandHeight - GameConfig.car.halfLength - GameConfig.car.stoppingMargin;
+                    } else {
+                        // Exit from near edge (top)
+                        edgeRow = islandRow + GameConfig.car.halfLength + GameConfig.car.stoppingMargin;
+                    }
                     edgeCol = currentCol;
                 }
 
@@ -406,12 +441,13 @@ class Course {
  */
 function createExampleCourse() {
     const course = new Course();
-    course.addSpan(4, Direction.COLUMN);  // +4 columns to (1,5), left turn
+    course.addSpan(4, Direction.COLUMN);  // +4 columns to (1,5), turn
     course.addSpan(5, Direction.ROW);     // +5 rows to (6,5), straight ahead
-    course.addSpan(3, Direction.ROW);     // +3 rows to (9,5), right turn
-    course.addSpan(2, Direction.COLUMN);  // +2 columns to (9,7), left turn (stays on island 4)
-    course.addSpan(4, Direction.ROW);     // +4 rows to (13,7), right turn (bridge to island 5)
-    course.addSpan(3, Direction.COLUMN);  // +3 columns to (13,10), end
+    course.addSpan(3, Direction.ROW);     // +3 rows to (9,5), turn
+    course.addSpan(2, Direction.COLUMN);  // +2 columns to (9,7), turn (stays on island 3)
+    course.addSpan(4, Direction.ROW);     // +4 rows to (13,7), turn (bridge to island 4)
+    course.addSpan(3, Direction.COLUMN);  // +3 columns to (13,10), turn (bridge to island 5)
+    course.addSpan(-4, Direction.ROW);    // -4 rows to (9,10), end (bridge to island 6)
     return course;
 }
 
@@ -430,7 +466,8 @@ function createExampleLevel() {
         [5, 4, 2, 2],   // Island 2: After bridge 1 (2 bridges crossed)
         [8, 4, 4, 2],   // Island 3: After bridge 2 (has 2 junctions)
         [11, 6, 2, 3],  // Island 4: After bridge 3 - 3 rows × 2 cols
-        [12, 9, 2, 2],  // Island 5: After bridge 4 (final destination)
+        [12, 9, 2, 2],  // Island 5: After bridge 4
+        [8, 9, 2, 2],   // Island 6: After bridge 5 (end, negative span)
     ];
 
     return new Level(course, islands);

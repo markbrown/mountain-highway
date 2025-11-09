@@ -60,3 +60,53 @@ mountain-highway/
 - Clean, readable code
 - Clear comments explaining intent
 - Minimalist design philosophy matching the game aesthetic
+
+## Key Technical Insights
+
+### Data Representation Matters
+
+When implementing bidirectional features (like negative spans), consider **separating sign from magnitude**:
+
+**Problem**: Storing signed values (e.g., `span.length = -4`) leads to:
+- Repeated sign checks via position comparisons: `endPos >= startPos`
+- Complex conditional logic throughout the codebase
+- Sign derived implicitly rather than stored explicitly
+
+**Solution**: Separate representation:
+```javascript
+class Span {
+    this.length = Math.abs(length);    // Always positive
+    this.sign = Math.sign(length) || 1; // +1 or -1
+    get isPositive() { return this.sign > 0; }
+    get signedLength() { return this.length * this.sign; }
+}
+```
+
+**Benefits**:
+- Sign computed once in constructor
+- Clear intent: `span.isPositive` vs `span.endPos >= span.startPos`
+- Less conditional logic - sign is explicit, not derived
+- Easier to maintain and extend
+
+### Isometric Rendering Order
+
+When rendering in isometric view with bidirectional movement:
+
+**Islands**: Back-to-front by `row + col` distance
+**Bridges and Car**: Three-pass system based on animation state:
+1. **All completed bridges** (under car - car drives on top)
+2. **Positive animating bridges** (behind car)
+3. **Car**
+4. **Negative animating bridges** (in front of car)
+
+**Key insight**: Rendering order depends on both direction AND animation state. Completed bridges always go under the car regardless of direction.
+
+### Incremental Complexity
+
+Adding negative spans revealed cascading complexity across 6+ systems. When Mark asked "is there a better way?", we:
+1. Acknowledged the complexity was real
+2. Analyzed alternative data representations
+3. Evaluated trade-offs (Option 1 vs 2 vs 3)
+4. Refactored systematically once design was agreed upon
+
+**Lesson**: Major feature additions benefit from pausing to evaluate if the data model should be refactored before the complexity becomes entrenched.

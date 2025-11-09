@@ -23,27 +23,30 @@ A course defines the path the car will travel through the game.
 - The course ends at a specific location on the final island
 
 **Spans:**
-- Each span travels in either the **column direction** (rightward on screen) or **row direction** (upward on screen)
-- Each span must be at least 3 grid squares in length
+- Each span travels in either the **column direction** or **row direction**
+- Spans can have **positive length** (rightward/upward) or **negative length** (leftward/downward)
+- Each span must be at least 3 grid squares in absolute length
 - The end of each span (except the last) arrives at an island with a **junction**
+- Internally, span sign is separated from length: `span.length` (always positive), `span.sign` (+1 or -1), `span.signedLength`
 
 **Junctions:**
-- Junctions describe how the road turns between consecutive spans
-- **Left turn**: Column direction → Row direction
-- **Right turn**: Row direction → Column direction
-- **Straight ahead**: Direction remains the same (Column → Column or Row → Row)
+- Junctions describe whether the road turns between consecutive spans
+- **Turn**: Direction changes (Column ↔ Row)
+- **Straight**: Direction remains the same (Column → Column or Row → Row)
+- Turn direction (left vs right) is not tracked since it doesn't affect rendering or validation
 - Junction points must be at least 1 square away from the edge of the island
 
 **Example Course:**
 Starting at (1,1):
-1. Span 0: +4 columns to (1,5) → Island 1 with left turn
+1. Span 0: +4 columns to (1,5) → Island 1 with turn
 2. Span 1: +5 rows to (6,5) → Island 2 straight ahead
-3. Span 2: +3 rows to (9,5) → Island 3 with right turn
-4. Span 3: +2 columns to (9,7) → Island 3 with left turn (stays on same island)
-5. Span 4: +4 rows to (13,7) → Island 4 with right turn
-6. Span 5: +3 columns to (13,10) → Island 5 (final destination)
+3. Span 2: +3 rows to (9,5) → Island 3 with turn
+4. Span 3: +2 columns to (9,7) → Island 3 with turn (stays on same island)
+5. Span 4: +4 rows to (13,7) → Island 4 with turn
+6. Span 5: +3 columns to (13,10) → Island 5 with turn
+7. Span 6: -4 rows to (9,10) → Island 6 (negative span, final destination)
 
-This course requires 6 islands (numbered 0-5): Island 0 at the start, then one island at the end of each bridge-crossing span. Note that spans 2 and 3 both occur on Island 3 (two junctions, no bridge between them).
+This course requires 7 islands (numbered 0-6): Island 0 at the start, then one island at the end of each bridge-crossing span. Note that spans 2 and 3 both occur on Island 3 (two junctions, no bridge between them).
 
 ## Visual Style
 
@@ -354,6 +357,14 @@ All roads are rendered using overlapping rectangles. The unified rectangle-based
   3. **Black outlines**: Visible edges where faces meet
 - This ensures proper depth ordering: nearer islands overlay more distant ones completely (colors, roads, and lines)
 
+**Bridge and Car Rendering Order:**
+- **Completed bridges** (horizontal): Rendered before car (car drives on top)
+- **Positive direction bridges being animated**: Rendered before car (car on near side)
+- **Car**: Rendered in the middle
+- **Negative direction bridges being animated**: Rendered after car (bridge on near side)
+- This ensures correct depth relationships: the car appears in front of positive bridges but behind negative bridges during animation
+- Once any bridge is completed, the car drives over it regardless of direction
+
 **Visual Model:**
 - All island tops exist on the same horizontal plane
 - The brown walls represent vertical cliffs extending downward to an invisible ground far below
@@ -486,6 +497,26 @@ The validation test suite (`test-validation.html`) provides comprehensive debugg
    - Bridge lengths automatically calculated from `Level.getBridgeAnimationData()` (gap + 0.5 units)
    - Demo animation now adapts automatically to any course changes
    - Foundation for gameplay: same system can be used when player controls bridge timing
+
+9. **Negative span support** - Full bidirectional travel capability:
+   - Spans can now have negative length to travel backward (leftward/downward)
+   - Refactored `Span` class to separate sign from length for clarity:
+     - `span.length`: Always positive magnitude
+     - `span.sign`: +1 or -1 indicating direction
+     - `span.isPositive`: Boolean helper
+     - `span.signedLength`: Signed length for calculations
+   - Updated all systems to handle negative spans:
+     - Road segment rendering: Correct clipping for negative direction
+     - Bridge positioning: Exit from near edge (instead of far edge)
+     - Bridge range calculation: Swap entry/exit edges for negative bridges
+     - Car animation: Bidirectional movement with proper target checking
+     - Bridge rendering: Negative length extends in opposite direction
+     - Bridge slam animation: Counter-clockwise rotation for negative bridges
+   - Isometric rendering order handles negative bridges correctly:
+     - Completed bridges always render before car (car drives on top)
+     - Animating positive bridges render before car (car on near side)
+     - Animating negative bridges render after car (bridge on near side)
+   - Reduces code complexity by computing sign once instead of repeated position comparisons
 
 ### Planned Improvements
 
