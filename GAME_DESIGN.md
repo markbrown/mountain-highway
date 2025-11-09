@@ -476,16 +476,24 @@ The validation test suite (`test-validation.html`) provides comprehensive debugg
 - Example: "Gap Too Small" needs gap = 0, not gap = 1 (which passes)
 - Visual rendering order: sort islands by `row + col` distance for proper depth ordering
 
+### Completed Improvements ✅
+
+8. **Path segment system** - Refactored state machine to use declarative segments:
+   - Added `Course.getPathSegments(islands)` to generate drive/bridge/turn segments from course structure
+   - Eliminated 95 lines of hardcoded setTimeout chains
+   - Segment types: `drive` (move to position), `bridge` (animate bridge), `turn` (change direction)
+   - Bridge sequence for each bridge: drive to edge → bridge grows/slams → drive across → turn at junction
+   - Bridge lengths automatically calculated from `Level.getBridgeAnimationData()` (gap + 0.5 units)
+   - Demo animation now adapts automatically to any course changes
+   - Foundation for gameplay: same system can be used when player controls bridge timing
+
 ### Planned Improvements
 
 **Medium Priority:**
-1. **State machine refactor**: Replace nested setTimeout callbacks with declarative path segment system.
-   - Current implementation uses complex nested setTimeout chains in `advanceToNextSegment()`
-   - Could use a segment queue with state transitions for cleaner flow
-2. **Debug mode enhancements**: Add overlays for junction markers, car target position, current game state, road segment boundaries.
+1. **Debug mode enhancements**: Add overlays for junction markers, car target position, current game state, road segment boundaries.
 
 **Low Priority:**
-3. **Decouple systems**: Create separate PathController, BridgeController, GameController for better modularity.
+2. **Decouple systems**: Create separate PathController, BridgeController, GameController for better modularity.
 
 ## Future Features to Consider
 

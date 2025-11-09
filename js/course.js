@@ -293,6 +293,112 @@ class Course {
 
         return bridges;
     }
+
+    /**
+     * Get path segments for car animation
+     * Breaks down the course into discrete segments: drive, bridge, turn
+     *
+     * @param {Array} islands - Array of island data [row, col, width, height]
+     * @returns {Array} Array of path segment objects
+     */
+    getPathSegments(islands) {
+        const segments = [];
+        const spanDetails = this.getSpanDetails();
+        const bridges = this.getBridges(islands);
+
+        let currentRow = this.startRow;
+        let currentCol = this.startCol;
+        let currentDirection = spanDetails[0].direction; // Start facing first span direction
+        let bridgeIndex = 0;
+
+        spanDetails.forEach((span, spanIdx) => {
+            const spanEnd = { row: span.endRow, col: span.endCol };
+
+            // Check if this span crosses a bridge
+            const bridge = bridges.find(b => b.spanIndex === spanIdx);
+
+            if (bridge) {
+                // Segment 1: Drive to edge of current island (before bridge)
+                const [islandRow, islandCol, islandWidth, islandHeight] = islands[bridge.startIsland];
+                let edgeRow, edgeCol;
+
+                if (span.direction === Direction.COLUMN) {
+                    edgeCol = islandCol + islandWidth - GameConfig.car.halfLength - GameConfig.car.stoppingMargin;
+                    edgeRow = currentRow;
+                } else {
+                    edgeRow = islandRow + islandHeight - GameConfig.car.halfLength - GameConfig.car.stoppingMargin;
+                    edgeCol = currentCol;
+                }
+
+                segments.push({
+                    type: 'drive',
+                    startRow: currentRow,
+                    startCol: currentCol,
+                    endRow: edgeRow,
+                    endCol: edgeCol,
+                    direction: span.direction
+                });
+
+                // Segment 2: Bridge animation (grows and slams, but car stays at edge)
+                segments.push({
+                    type: 'bridge',
+                    startRow: edgeRow,
+                    startCol: edgeCol,
+                    direction: span.direction,
+                    bridgeIndex: bridgeIndex
+                });
+
+                // Segment 3: Drive across bridge to junction
+                segments.push({
+                    type: 'drive',
+                    startRow: edgeRow,
+                    startCol: edgeCol,
+                    endRow: spanEnd.row,
+                    endCol: spanEnd.col,
+                    direction: span.direction
+                });
+
+                bridgeIndex++;
+                currentRow = spanEnd.row;
+                currentCol = spanEnd.col;
+
+            } else {
+                // No bridge - just drive along island to junction
+                segments.push({
+                    type: 'drive',
+                    startRow: currentRow,
+                    startCol: currentCol,
+                    endRow: spanEnd.row,
+                    endCol: spanEnd.col,
+                    direction: span.direction
+                });
+
+                currentRow = spanEnd.row;
+                currentCol = spanEnd.col;
+            }
+
+            // Add turn segment if direction changes
+            if (span.junction && span.junction !== JunctionType.STRAIGHT) {
+                const nextDirection = spanIdx + 1 < spanDetails.length ?
+                    spanDetails[spanIdx + 1].direction : null;
+
+                if (nextDirection) {
+                    segments.push({
+                        type: 'turn',
+                        row: currentRow,
+                        col: currentCol,
+                        fromDirection: span.direction,
+                        toDirection: nextDirection,
+                        junctionType: span.junction
+                    });
+
+                    currentDirection = nextDirection;
+                }
+            }
+        });
+
+        return segments;
+    }
 }
 
 /**
