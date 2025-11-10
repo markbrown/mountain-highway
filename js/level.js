@@ -34,8 +34,8 @@ class Level {
         return bridges.map(bridge => {
             const range = bridge.calculateRange(this.islands);
 
-            // TEST: Target length 1.4 units PAST minimum (within maxSafe - car should complete course)
-            const targetLength = range.minSafe + 1.4;
+            // Perfect bridge length: gap distance + 0.5 units (extends onto next island)
+            const targetLength = range.minSafe + 0.5;
 
             // Hold time: how long to hold the button (length / growth rate)
             const holdTime = targetLength / GameConfig.bridge.growthRate;

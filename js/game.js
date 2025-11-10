@@ -44,6 +44,9 @@ class Game {
         this.bridgeSequence = this.level.getBridgeAnimationData();
         this.bridgePositions = this.level.getBridgePositions();
 
+        // Player input state
+        this.mousePressed = false;
+
         this.bridgeLength = 0;
         this.bridgeRotation = 0; // 0 = vertical, Math.PI/2 = horizontal
 
@@ -189,11 +192,54 @@ class Game {
         // Log path segments for debugging
         console.log('Path segments:', this.pathSegments);
 
+        // Set up mouse input handlers
+        this.setupInputHandlers();
+
         // Start with first segment
         this.startNextSegment();
 
         // Start animation loop
         requestAnimationFrame((time) => this.animate(time));
+    }
+
+    /**
+     * Set up mouse/touch input handlers for bridge building
+     */
+    setupInputHandlers() {
+        // Mouse down - start growing bridge
+        this.canvas.addEventListener('mousedown', (e) => {
+            if (this.gameState === GameState.BRIDGE_GROWING) {
+                this.mousePressed = true;
+                console.log('Mouse pressed - bridge growing');
+            }
+        });
+
+        // Mouse up - stop growing and slam bridge
+        this.canvas.addEventListener('mouseup', (e) => {
+            if (this.gameState === GameState.BRIDGE_GROWING && this.mousePressed) {
+                this.mousePressed = false;
+                this.slamBridge();
+                console.log('Mouse released - bridge slamming at length:', this.bridgeLength);
+            }
+        });
+
+        // Touch support
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (this.gameState === GameState.BRIDGE_GROWING) {
+                this.mousePressed = true;
+                console.log('Touch start - bridge growing');
+            }
+        });
+
+        this.canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (this.gameState === GameState.BRIDGE_GROWING && this.mousePressed) {
+                this.mousePressed = false;
+                this.slamBridge();
+                console.log('Touch end - bridge slamming at length:', this.bridgeLength);
+            }
+        });
     }
 
     /**
@@ -314,38 +360,24 @@ class Game {
             // Instant turn, advance to next segment
             this.startNextSegment();
         } else if (this.gameState === GameState.BRIDGE_GROWING) {
-            const bridgeData = this.bridgeSequence[this.currentSegment.bridgeIndex];
-            const bridgeIndex = this.currentSegment.bridgeIndex;
-            const bridges = this.level.getBridges();
-            const currentBridge = bridges[bridgeIndex];
-            const safeRange = currentBridge.calculateRange(this.islands);
+            // Only grow bridge while mouse is pressed
+            if (this.mousePressed) {
+                const bridgeIndex = this.currentSegment.bridgeIndex;
+                const bridges = this.level.getBridges();
+                const currentBridge = bridges[bridgeIndex];
+                const safeRange = currentBridge.calculateRange(this.islands);
 
-            // Calculate maximum bridge length: minSafe + 2.0 units
-            const maxBridgeLength = safeRange.minSafe + 2.0;
+                // Calculate maximum bridge length: minSafe + 2.0 units
+                const maxBridgeLength = safeRange.minSafe + 2.0;
 
-            this.bridgeLength += GameConfig.bridge.growthRate * deltaTime;
+                this.bridgeLength += GameConfig.bridge.growthRate * deltaTime;
 
-            // Cap bridge length at maximum (but don't slam until released)
-            if (this.bridgeLength > maxBridgeLength) {
-                this.bridgeLength = maxBridgeLength;
-            }
-
-            if (this.bridgeLength >= bridgeData.targetLength) {
-                this.bridgeLength = bridgeData.targetLength;
-
-                // Apply forgiveness for slightly short bridges BEFORE slam animation
-                const leeway = GameConfig.bridge.leeway;
-
-                if (this.bridgeLength >= safeRange.minSafe - leeway && this.bridgeLength < safeRange.minSafe) {
-                    console.log('Bridge slightly short - applying forgiveness (extending to minimum)');
-                    this.bridgeLength = safeRange.minSafe;
-                    // Update bridge data so rendering uses the extended length
-                    this.bridgeSequence[bridgeIndex].targetLength = safeRange.minSafe;
+                // Cap bridge length at maximum (but don't slam until released)
+                if (this.bridgeLength > maxBridgeLength) {
+                    this.bridgeLength = maxBridgeLength;
                 }
-
-                this.gameState = GameState.BRIDGE_SLAMMING;
-                this.stateProgress = 0;
             }
+            // Bridge stays at current length while waiting for player input
         } else if (this.gameState === GameState.BRIDGE_SLAMMING) {
             this.stateProgress += deltaTime;
             const pos = this.bridgePositions[this.currentSegment.bridgeIndex];
@@ -422,6 +454,33 @@ class Game {
             this.carDirection = this.currentSegment.toDirection;
             this.gameState = GameState.TURNING;
         }
+    }
+
+    /**
+     * Called when player releases mouse - slam bridge and apply forgiveness if needed
+     */
+    slamBridge() {
+        const bridgeIndex = this.currentSegment.bridgeIndex;
+        const bridges = this.level.getBridges();
+        const currentBridge = bridges[bridgeIndex];
+        const safeRange = currentBridge.calculateRange(this.islands);
+
+        // Apply forgiveness for slightly short bridges BEFORE slam animation
+        const leeway = GameConfig.bridge.leeway;
+
+        if (this.bridgeLength >= safeRange.minSafe - leeway && this.bridgeLength < safeRange.minSafe) {
+            console.log('Bridge slightly short - applying forgiveness (extending to minimum)');
+            this.bridgeLength = safeRange.minSafe;
+            // Update bridge data so rendering uses the extended length
+            this.bridgeSequence[bridgeIndex].targetLength = safeRange.minSafe;
+        }
+
+        // Update bridge data with final length
+        this.bridgeSequence[bridgeIndex].targetLength = this.bridgeLength;
+
+        // Start slam animation
+        this.gameState = GameState.BRIDGE_SLAMMING;
+        this.stateProgress = 0;
     }
 
     /**

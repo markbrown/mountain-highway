@@ -864,10 +864,19 @@ const finalPos = startPos + signedDistance;
 - ✅ Physics system
   - Gravity acceleration (20 units/second²)
   - Tumble rotation while falling (3.0 rad/s)
+- ✅ Player input system
+  - Mouse and touch event handlers for bridge building
+  - Click/hold to grow bridge, release to slam
+  - Bridge only grows while mouse/touch is held
+  - Maximum bridge length cap prevents infinite growth
+- ✅ Playable game loop
+  - Full gameplay from start to finish
+  - Player controls bridge length for each gap
+  - Win condition: reach end of course
+  - Lose condition: fall off edge (bridge too short/long)
 
 ### Planned
-- ⏳ Mouse input handling for bridge building
-- ⏳ Player-controlled bridge length (hold duration)
 - ⏳ Vertical scrolling to follow car (currently implemented but may need refinement)
-- ⏳ Game states (start screen, playing, game over, win)
+- ⏳ Game states (start screen, game over, win screen with restart)
 - ⏳ Sound effects
+- ⏳ Visual polish (power meter, distance indicators, score display)
