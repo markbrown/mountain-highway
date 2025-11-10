@@ -1,22 +1,31 @@
 // Main game loop and initialization
 
+// Game state constants
+const GameState = {
+    DRIVING: 'driving',
+    TURNING: 'turning',
+    BRIDGE_GROWING: 'bridge_growing',
+    BRIDGE_SLAMMING: 'bridge_slamming',
+    SEGMENT_DONE: 'segment_done',
+    DONE: 'done'
+};
+
 class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
 
-        // Fixed canvas size
-        this.canvasWidth = 800;
-        this.canvasHeight = 600;
+        // Fixed canvas size from config
+        this.canvasWidth = GameConfig.canvas.width;
+        this.canvasHeight = GameConfig.canvas.height;
+
+        // Set canvas element dimensions
+        this.canvas.width = this.canvasWidth;
+        this.canvas.height = this.canvasHeight;
 
         // Viewport will be updated each frame based on car position
         this.viewport = null;
         this.renderer = null;
         this.debug = null;
-
-        // Debug options
-        this.showDebugGrid = GameConfig.debug.showGrid;
-        this.showIslandNumbers = GameConfig.debug.showIslandNumbers;
-        this.showBridgeZones = GameConfig.debug.showBridgeZones;
 
         // Load the level (course + islands)
         this.level = createExampleLevel();
@@ -46,8 +55,7 @@ class Game {
         this.bridgeRotation = 0; // 0 = vertical, Math.PI/2 = horizontal
 
         // Game state machine
-        // States: 'driving', 'turning', 'bridge_growing', 'bridge_slamming', 'done'
-        this.gameState = 'driving';
+        this.gameState = GameState.DRIVING;
         this.stateProgress = 0;
         this.lastTime = 0;
 
@@ -134,11 +142,8 @@ class Game {
 
         // Calculate viewport height in grid units
         // We want to show roughly half the course height at a time for scrolling
-        // In isometric: moving 1 row changes screenY by blockSize/2
-        const viewportHeightInRows = 8; // Show ~8 rows at a time (roughly half of 16-row course)
-
-        // Add some extra margin for smoother scrolling
-        const scrollMargin = 1;
+        const viewportHeightInRows = GameConfig.viewport.heightInRows;
+        const scrollMargin = GameConfig.viewport.scrollMargin;
 
         // Position viewport to center car vertically
         const carCenterRow = this.carRow;
@@ -216,13 +221,13 @@ class Game {
         const deltaTime = (currentTime - this.lastTime) / 1000; // Convert to seconds
         this.lastTime = currentTime;
 
-        if (this.gameState === 'done') {
+        if (this.gameState === GameState.DONE) {
             this.render();
             return;
         }
 
         // State machine for coordinating car movement and bridge animations
-        if (this.gameState === 'driving') {
+        if (this.gameState === GameState.DRIVING) {
             // Move car toward target position
             if (this.carDirection === 'column') {
                 // Check if we're moving forward or backward
@@ -231,14 +236,14 @@ class Game {
                     this.carCol += this.carSpeed * deltaTime;
                     if (this.carCol >= this.targetPosition) {
                         this.carCol = this.targetPosition;
-                        this.gameState = 'segment_done';
+                        this.gameState = GameState.SEGMENT_DONE;
                     }
                 } else {
                     // Moving backward (negative direction)
                     this.carCol -= this.carSpeed * deltaTime;
                     if (this.carCol <= this.targetPosition) {
                         this.carCol = this.targetPosition;
-                        this.gameState = 'segment_done';
+                        this.gameState = GameState.SEGMENT_DONE;
                     }
                 }
             } else {
@@ -248,30 +253,30 @@ class Game {
                     this.carRow += this.carSpeed * deltaTime;
                     if (this.carRow >= this.targetPosition) {
                         this.carRow = this.targetPosition;
-                        this.gameState = 'segment_done';
+                        this.gameState = GameState.SEGMENT_DONE;
                     }
                 } else {
                     // Moving backward (negative direction)
                     this.carRow -= this.carSpeed * deltaTime;
                     if (this.carRow <= this.targetPosition) {
                         this.carRow = this.targetPosition;
-                        this.gameState = 'segment_done';
+                        this.gameState = GameState.SEGMENT_DONE;
                     }
                 }
             }
-        } else if (this.gameState === 'turning') {
+        } else if (this.gameState === GameState.TURNING) {
             // Instant turn, advance to next segment
             this.startNextSegment();
-        } else if (this.gameState === 'bridge_growing') {
+        } else if (this.gameState === GameState.BRIDGE_GROWING) {
             const bridgeData = this.bridgeSequence[this.currentSegment.bridgeIndex];
             this.bridgeLength += this.bridgeGrowthRate * deltaTime;
 
             if (this.bridgeLength >= bridgeData.targetLength) {
                 this.bridgeLength = bridgeData.targetLength;
-                this.gameState = 'bridge_slamming';
+                this.gameState = GameState.BRIDGE_SLAMMING;
                 this.stateProgress = 0;
             }
-        } else if (this.gameState === 'bridge_slamming') {
+        } else if (this.gameState === GameState.BRIDGE_SLAMMING) {
             this.stateProgress += deltaTime;
             const pos = this.bridgePositions[this.currentSegment.bridgeIndex];
 
@@ -284,7 +289,7 @@ class Game {
                 // Rotate in opposite direction for negative bridges
                 this.bridgeRotation = pos.isPositive ? (Math.PI / 2) * t : (-Math.PI / 2) * t;
             }
-        } else if (this.gameState === 'segment_done') {
+        } else if (this.gameState === GameState.SEGMENT_DONE) {
             // Start next segment
             this.startNextSegment();
         }
@@ -300,7 +305,7 @@ class Game {
     startNextSegment() {
         // Check if we've completed all segments
         if (this.currentSegmentIndex >= this.pathSegments.length) {
-            this.gameState = 'done';
+            this.gameState = GameState.DONE;
             return;
         }
 
@@ -319,18 +324,18 @@ class Game {
             } else {
                 this.targetPosition = this.currentSegment.endRow;
             }
-            this.gameState = 'driving';
+            this.gameState = GameState.DRIVING;
 
         } else if (this.currentSegment.type === 'bridge') {
             // Start bridge animation
             this.bridgeLength = 0;
             this.bridgeRotation = 0;
-            this.gameState = 'bridge_growing';
+            this.gameState = GameState.BRIDGE_GROWING;
 
         } else if (this.currentSegment.type === 'turn') {
             // Change direction and continue to next segment
             this.carDirection = this.currentSegment.toDirection;
-            this.gameState = 'turning';
+            this.gameState = GameState.TURNING;
         }
     }
 
@@ -348,7 +353,7 @@ class Game {
         this.renderer.ctx.translate(offset.x, offset.y);
 
         // Draw debug grid (optional - for development)
-        if (this.showDebugGrid) {
+        if (GameConfig.debug.showGrid) {
             this.debug.drawGrid(this.viewport.minRow, this.viewport.maxRow,
                               this.viewport.minCol, this.viewport.maxCol, blockSize);
         }
@@ -398,15 +403,15 @@ class Game {
 
             // Is this the current bridge being animated?
             const isCurrentBridge = (this.currentSegment === segment &&
-                                     (this.gameState === 'bridge_growing' || this.gameState === 'bridge_slamming'));
+                                     (this.gameState === GameState.BRIDGE_GROWING || this.gameState === GameState.BRIDGE_SLAMMING));
 
             // Is this a completed bridge?
             const isCompleted = idx < this.currentSegmentIndex - 1 ||
-                               (idx === this.currentSegmentIndex - 1 && this.gameState !== 'bridge_growing' && this.gameState !== 'bridge_slamming');
+                               (idx === this.currentSegmentIndex - 1 && this.gameState !== GameState.BRIDGE_GROWING && this.gameState !== GameState.BRIDGE_SLAMMING);
 
             if (isCurrentBridge) {
                 // Draw current bridge being animated
-                if (this.gameState === 'bridge_growing') {
+                if (this.gameState === GameState.BRIDGE_GROWING) {
                     // Draw vertical bridge
                     if (pos.direction === 'column') {
                         this.renderer.drawVerticalBridge(pos.baseRow, pos.edgeCol, pos.direction, this.bridgeLength, blockSize);
@@ -415,7 +420,7 @@ class Game {
                         this.renderer.drawVerticalBridge(pos.edgeRow, pos.baseCol, pos.direction, this.bridgeLength, blockSize);
                         this.renderer.drawBridgeEdgeLine(pos.edgeRow, pos.baseCol, pos.direction, blockSize);
                     }
-                } else if (this.gameState === 'bridge_slamming') {
+                } else if (this.gameState === GameState.BRIDGE_SLAMMING) {
                     // Draw rotating bridge
                     if (pos.direction === 'column') {
                         this.renderer.drawRotatingBridge(pos.baseRow, pos.edgeCol, pos.direction, this.bridgeLength, this.bridgeRotation, blockSize);
@@ -447,7 +452,7 @@ class Game {
 
             const bridgeIndex = segment.bridgeIndex;
             const isCurrentBridge = (this.currentSegment === segment &&
-                                     (this.gameState === 'bridge_growing' || this.gameState === 'bridge_slamming'));
+                                     (this.gameState === GameState.BRIDGE_GROWING || this.gameState === GameState.BRIDGE_SLAMMING));
 
             // Draw if it's completed (not currently animating)
             if (!isCurrentBridge) {
@@ -461,7 +466,7 @@ class Game {
 
             const pos = this.bridgePositions[segment.bridgeIndex];
             const isCurrentBridge = (this.currentSegment === segment &&
-                                     (this.gameState === 'bridge_growing' || this.gameState === 'bridge_slamming'));
+                                     (this.gameState === GameState.BRIDGE_GROWING || this.gameState === GameState.BRIDGE_SLAMMING));
 
             // Draw if it's currently animating and positive direction
             if (isCurrentBridge && pos.isPositive) {
@@ -478,7 +483,7 @@ class Game {
 
             const pos = this.bridgePositions[segment.bridgeIndex];
             const isCurrentBridge = (this.currentSegment === segment &&
-                                     (this.gameState === 'bridge_growing' || this.gameState === 'bridge_slamming'));
+                                     (this.gameState === GameState.BRIDGE_GROWING || this.gameState === GameState.BRIDGE_SLAMMING));
 
             // Draw if it's currently animating and negative direction
             if (isCurrentBridge && !pos.isPositive) {

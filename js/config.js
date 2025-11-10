@@ -53,6 +53,12 @@ const GameConfig = {
         outlineWidth: 2
     },
 
+    // Viewport and scrolling
+    viewport: {
+        heightInRows: 8,      // Number of rows visible at once when scrolling
+        scrollMargin: 1       // Extra margin for smoother scrolling
+    },
+
     // Debug settings
     debug: {
         showGrid: false,
