@@ -14,13 +14,9 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
 
-        // Fixed canvas size from config
-        this.canvasWidth = GameConfig.canvas.width;
-        this.canvasHeight = GameConfig.canvas.height;
-
-        // Set canvas element dimensions
-        this.canvas.width = this.canvasWidth;
-        this.canvas.height = this.canvasHeight;
+        // Set canvas element dimensions from config
+        this.canvas.width = GameConfig.canvas.width;
+        this.canvas.height = GameConfig.canvas.height;
 
         // Viewport will be updated each frame based on car position
         this.viewport = null;
@@ -199,7 +195,7 @@ class Game {
      * Update viewport based on current car position
      */
     updateViewport() {
-        this.viewport = this.createViewportForCanvas(this.canvasWidth, this.canvasHeight);
+        this.viewport = this.createViewportForCanvas(GameConfig.canvas.width, GameConfig.canvas.height);
 
         // Create or update renderer with new viewport
         if (this.renderer === null) {
