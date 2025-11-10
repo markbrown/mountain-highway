@@ -58,6 +58,7 @@ class Game {
         this.carFallVelocity = 0;     // Current falling velocity
         this.carTumbleRotation = 0;   // Rotation angle while tumbling
         this.targetIslandIndex = -1;  // Island index for rendering order
+        this.bridgeIsPositive = true; // Direction sign of bridge when falling
 
         // Car sprites
         this.carSprites = {
@@ -318,6 +319,21 @@ class Game {
 
             if (this.bridgeLength >= bridgeData.targetLength) {
                 this.bridgeLength = bridgeData.targetLength;
+
+                // Apply forgiveness for slightly short bridges BEFORE slam animation
+                const bridgeIndex = this.currentSegment.bridgeIndex;
+                const bridges = this.level.getBridges();
+                const currentBridge = bridges[bridgeIndex];
+                const safeRange = currentBridge.calculateRange(this.islands);
+                const leeway = GameConfig.bridge.leeway;
+
+                if (this.bridgeLength >= safeRange.minSafe - leeway && this.bridgeLength < safeRange.minSafe) {
+                    console.log('Bridge slightly short - applying forgiveness (extending to minimum)');
+                    this.bridgeLength = safeRange.minSafe;
+                    // Update bridge data so rendering uses the extended length
+                    this.bridgeSequence[bridgeIndex].targetLength = safeRange.minSafe;
+                }
+
                 this.gameState = GameState.BRIDGE_SLAMMING;
                 this.stateProgress = 0;
             }
@@ -408,17 +424,9 @@ class Game {
         const bridges = this.level.getBridges();
         const currentBridge = bridges[bridgeIndex];
         const safeRange = currentBridge.calculateRange(this.islands);
-        const leeway = GameConfig.bridge.leeway;
 
-        // Apply forgiveness for slightly short bridges
-        if (this.bridgeLength >= safeRange.minSafe - leeway && this.bridgeLength < safeRange.minSafe) {
-            console.log('Bridge slightly short - applying forgiveness (extending to minimum)');
-            this.bridgeLength = safeRange.minSafe;
-            // Also update the bridge data so rendering uses the extended length
-            this.bridgeSequence[bridgeIndex].targetLength = safeRange.minSafe;
-        }
-
-        // Check if bridge is too short (after forgiveness)
+        // Note: Forgiveness is already applied during BRIDGE_GROWING state
+        // Check if bridge is too short
         if (this.bridgeLength < safeRange.minSafe) {
             // Bridge is too short - car is doomed
             console.log('Bridge too short! Length:', this.bridgeLength, 'Min:', safeRange.minSafe);
@@ -426,7 +434,7 @@ class Game {
             // Calculate fall point: bridge start + bridge length + leeway
             const pos = this.bridgePositions[bridgeIndex];
             const sign = pos.isPositive ? 1 : -1;
-            const fallDistance = this.bridgeLength + leeway;
+            const fallDistance = this.bridgeLength + GameConfig.bridge.leeway;
 
             if (pos.direction === 'column') {
                 const bridgeStart = pos.edgeCol;
@@ -439,6 +447,7 @@ class Game {
             }
 
             this.targetIslandIndex = currentBridge.endIsland;
+            this.bridgeIsPositive = pos.isPositive;
             this.gameState = GameState.DOOMED;
 
         } else if (this.bridgeLength <= safeRange.maxSafe) {
@@ -451,6 +460,32 @@ class Game {
             console.log('Bridge too long! (Not yet implemented)');
             this.startNextSegment(); // For now, just continue
         }
+    }
+
+    /**
+     * Render the falling car with z-offset and tumble rotation
+     */
+    renderFallingCar(blockSize) {
+        // Render car with z-offset (falling into the abyss)
+        this.renderer.ctx.save();
+
+        // Apply z-offset as vertical translation in screen space
+        this.renderer.ctx.translate(0, this.carZOffset * blockSize);
+
+        // Draw car with tumble rotation
+        const screenPos = this.renderer.gameToScreen(this.carRow, this.carCol);
+        const screenX = screenPos.x * blockSize;
+        const screenY = screenPos.y * blockSize;
+
+        this.renderer.ctx.save();
+        this.renderer.ctx.translate(screenX, screenY);
+        this.renderer.ctx.rotate(this.carTumbleRotation);
+        this.renderer.ctx.translate(-screenX, -screenY);
+
+        this.renderer.drawCar(this.carRow, this.carCol, this.carDirection, blockSize, this.carSprites, this.spritesLoaded);
+
+        this.renderer.ctx.restore();
+        this.renderer.ctx.restore();
     }
 
     render() {
@@ -487,10 +522,15 @@ class Game {
             .map(item => item.idx);
 
         // Render each island completely (colors → road → lines) from farthest to nearest
-        // For falling car: pause after target island to render car, then continue with nearer islands
+        // For falling car: render before or after target island depending on bridge direction
         for (let i = 0; i < sortedIndices.length; i++) {
             const islandIndex = sortedIndices[i];
             const [row, col, width, height] = this.islands[islandIndex];
+
+            // For negative direction bridges, render car BEFORE target island
+            if (this.gameState === GameState.FALLING && islandIndex === this.targetIslandIndex && !this.bridgeIsPositive) {
+                this.renderFallingCar(blockSize);
+            }
 
             // Step 1: Draw island base colors (green and brown)
             const corners = this.renderer.drawIslandColors(row, col, width, height, wallHeight, blockSize);
@@ -502,28 +542,9 @@ class Game {
             // Step 3: Draw island outlines (black lines)
             this.renderer.drawIslandOutlines(corners);
 
-            // If car is falling and we just rendered the target island, render the falling car now
-            if (this.gameState === GameState.FALLING && islandIndex === this.targetIslandIndex) {
-                // Render car with z-offset (falling into the abyss)
-                this.renderer.ctx.save();
-
-                // Apply z-offset as vertical translation in screen space
-                this.renderer.ctx.translate(0, this.carZOffset * blockSize);
-
-                // Draw car with tumble rotation
-                const screenPos = this.renderer.gameToScreen(this.carRow, this.carCol);
-                const screenX = screenPos.x * blockSize;
-                const screenY = screenPos.y * blockSize;
-
-                this.renderer.ctx.save();
-                this.renderer.ctx.translate(screenX, screenY);
-                this.renderer.ctx.rotate(this.carTumbleRotation);
-                this.renderer.ctx.translate(-screenX, -screenY);
-
-                this.renderer.drawCar(this.carRow, this.carCol, this.carDirection, blockSize, this.carSprites, this.spritesLoaded);
-
-                this.renderer.ctx.restore();
-                this.renderer.ctx.restore();
+            // For positive direction bridges, render car AFTER target island
+            if (this.gameState === GameState.FALLING && islandIndex === this.targetIslandIndex && this.bridgeIsPositive) {
+                this.renderFallingCar(blockSize);
             }
         }
 

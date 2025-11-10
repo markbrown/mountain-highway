@@ -321,10 +321,12 @@ For **turns** (left or right):
   - Car position remains at (row, col) where it fell
   - Z-offset increases positively (moves down on screen)
   - Car rotates continuously while falling
-- Rendering order: Car renders after target island but before nearer islands
-  - Appears in front of island it fell short of
-  - Disappears behind foreground islands
+- Rendering order (direction-aware):
+  - **Positive direction bridges**: Car renders after target island (car on near side)
+  - **Negative direction bridges**: Car renders before target island (car on far side)
+  - In both cases: car appears in front of island it fell short of, behind foreground islands
   - Falls underneath the bridge
+  - Direction stored when car becomes DOOMED (`this.bridgeIsPositive`)
 - Game over: When car falls more than 100 units below plane
 - No recovery possible once falling begins
 
