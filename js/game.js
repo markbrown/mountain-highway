@@ -315,16 +315,25 @@ class Game {
             this.startNextSegment();
         } else if (this.gameState === GameState.BRIDGE_GROWING) {
             const bridgeData = this.bridgeSequence[this.currentSegment.bridgeIndex];
+            const bridgeIndex = this.currentSegment.bridgeIndex;
+            const bridges = this.level.getBridges();
+            const currentBridge = bridges[bridgeIndex];
+            const safeRange = currentBridge.calculateRange(this.islands);
+
+            // Calculate maximum bridge length: minSafe + 2.0 units
+            const maxBridgeLength = safeRange.minSafe + 2.0;
+
             this.bridgeLength += GameConfig.bridge.growthRate * deltaTime;
+
+            // Cap bridge length at maximum (but don't slam until released)
+            if (this.bridgeLength > maxBridgeLength) {
+                this.bridgeLength = maxBridgeLength;
+            }
 
             if (this.bridgeLength >= bridgeData.targetLength) {
                 this.bridgeLength = bridgeData.targetLength;
 
                 // Apply forgiveness for slightly short bridges BEFORE slam animation
-                const bridgeIndex = this.currentSegment.bridgeIndex;
-                const bridges = this.level.getBridges();
-                const currentBridge = bridges[bridgeIndex];
-                const safeRange = currentBridge.calculateRange(this.islands);
                 const leeway = GameConfig.bridge.leeway;
 
                 if (this.bridgeLength >= safeRange.minSafe - leeway && this.bridgeLength < safeRange.minSafe) {
@@ -456,9 +465,57 @@ class Game {
             this.startNextSegment();
 
         } else {
-            // Bridge is too long - defer this case for later
-            console.log('Bridge too long! (Not yet implemented)');
-            this.startNextSegment(); // For now, just continue
+            // Bridge is too long
+            console.log('Bridge too long. Junction type:', currentBridge.junctionType);
+            // Check if this causes the car to miss a turn
+            if (currentBridge.junctionType === null || currentBridge.junctionType !== 'turn') {
+                // No turn to miss - car continues safely (just costs time)
+                console.log('Bridge too long but no turn to miss - safe');
+                this.startNextSegment();
+            } else {
+                // Turn junction - check if car misses the turn
+                // Note: maxSafe already includes 0.5 extension past junction for turns
+                const overshoot = this.bridgeLength - safeRange.maxSafe;
+                console.log('Turn junction: bridgeLength =', this.bridgeLength, 'maxSafe =', safeRange.maxSafe, 'overshoot =', overshoot);
+
+                if (overshoot > 0) {
+                    // Car misses the turn, drives off opposite edge
+                    console.log('Bridge too long! Car misses turn. Length:', this.bridgeLength, 'Max safe:', safeRange.maxSafe);
+
+                    const pos = this.bridgePositions[bridgeIndex];
+                    const sign = pos.isPositive ? 1 : -1;
+                    const targetIsland = this.islands[currentBridge.endIsland];
+                    const [islandRow, islandCol, islandWidth, islandHeight] = targetIsland;
+
+                    // Calculate opposite edge and fall point
+                    // Entry edge is where minSafe reaches (edge of island)
+                    // Opposite edge is entry edge + island dimension in travel direction
+                    if (pos.direction === 'column') {
+                        // Entry edge is where the bridge reaches
+                        const entryEdge = sign > 0 ? islandCol : (islandCol + islandWidth);
+                        const oppositeEdge = sign > 0 ? (islandCol + islandWidth) : islandCol;
+                        const fallCol = oppositeEdge + (sign * GameConfig.bridge.leeway);
+                        this.fallPoint = { row: pos.baseRow, col: fallCol };
+                        this.targetPosition = this.fallPoint.col;
+                    } else {
+                        const entryEdge = sign > 0 ? islandRow : (islandRow + islandHeight);
+                        const oppositeEdge = sign > 0 ? (islandRow + islandHeight) : islandRow;
+                        const fallRow = oppositeEdge + (sign * GameConfig.bridge.leeway);
+                        this.fallPoint = { row: fallRow, col: pos.baseCol };
+                        this.targetPosition = this.fallPoint.row;
+                    }
+
+                    this.targetIslandIndex = currentBridge.endIsland;
+                    // IMPORTANT: Rendering reversal for too-long falls
+                    // Car falls off far side, so reverse the rendering order
+                    this.bridgeIsPositive = !pos.isPositive;
+                    this.gameState = GameState.DOOMED;
+                } else {
+                    // Bridge extends past junction but not enough to miss turn
+                    console.log('Bridge slightly too long but car makes the turn');
+                    this.startNextSegment();
+                }
+            }
         }
     }
 

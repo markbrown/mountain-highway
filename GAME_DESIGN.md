@@ -228,13 +228,13 @@ The `Viewport` class manages what portion of the game world is visible:
 - Grows from the exact edge of the island along the road centerline
 - Growth rate: 2 units per second (configurable via `GameConfig.bridge.growthRate`)
 - Minimum length: 0 (instant click/release)
-- Maximum length depends on junction type:
-  - **Straight ahead**: Distance to opposite edge of island
-  - **Left/Right turn**: Distance to outside corner
+- Maximum length: `minSafe + 2.0` units (capped during growth)
+  - Bridge stops growing at maximum even if button held
+  - Bridge stays vertical until released (holding past maximum only costs time)
+  - Maximum ensures bridge never extends past opposite edge of target island
 - **Target length**: Gap distance + 0.5 units (extends onto next island for smooth transition)
 - **Animation timing**: Hold time = target length / growth rate
   - Example: 2.5 unit bridge at 2 units/sec = 1.25 second hold time
-- Bridge stops growing at maximum length but stays vertical until released
 - While growing: displayed as vertical rectangle (rotated 90°)
 - When released: quick animation rotating down to horizontal (0.2 seconds)
 
@@ -252,7 +252,7 @@ The `Viewport` class manages what portion of the game world is visible:
 
 When the bridge slam animation completes, the game evaluates the bridge length against the safe range and determines the outcome:
 
-**Three possible outcomes:**
+**Four possible outcomes:**
 
 1. **Bridge too short** (length < minSafe - leeway):
    - Car enters DOOMED state
@@ -270,6 +270,20 @@ When the bridge slam animation completes, the game evaluates the bridge length a
 3. **Bridge safe** (minSafe ≤ length ≤ maxSafe):
    - Normal gameplay continues
    - Car drives across bridge to next island
+
+4. **Bridge too long** (length > maxSafe):
+   - Junction type determines outcome:
+     - **Straight junction or end of course**: Car continues safely (only costs time)
+     - **Turn junction**: Check if car misses the turn
+       - If `overshoot > 0` (where `overshoot = length - maxSafe`):
+         - Car enters DOOMED state
+         - Car drives to predetermined fall point: opposite edge of target island + leeway
+         - Car transitions to FALLING state and tumbles off screen
+         - **Rendering reversal**: Car renders on far side (reversed from too-short case)
+           - Positive bridges: car renders before target island
+           - Negative bridges: car renders after target island
+         - Game over when car falls out of view
+       - If `overshoot ≤ 0`: Car makes the turn successfully (bridge slightly too long but safe)
 
 **Safe Range Definition:**
 
@@ -311,22 +325,36 @@ For **turns** (left or right):
   - Car waits at edge for bridge to be built
 - After bridge drops: Car immediately continues forward across bridge
 
-**Car Falling (Bridge Too Short):**
+**Car Falling:**
+
+When a bridge is incorrectly sized, the car may fall off the edge:
+
+**Bridge Too Short:**
 - When bridge is too short (beyond forgiveness range), car enters DOOMED state
 - DOOMED state: Car drives automatically to fall point with no player control
 - Fall point: Bridge end + leeway (0.3 units past bridge end)
-- FALLING state:
-  - Gravity: 20 units/second² acceleration (configurable via `GameConfig.physics.gravity`)
-  - Tumble rate: 3.0 radians/second rotation (configurable via `GameConfig.physics.tumbleRate`)
-  - Car position remains at (row, col) where it fell
-  - Z-offset increases positively (moves down on screen)
-  - Car rotates continuously while falling
 - Rendering order (direction-aware):
   - **Positive direction bridges**: Car renders after target island (car on near side)
   - **Negative direction bridges**: Car renders before target island (car on far side)
   - In both cases: car appears in front of island it fell short of, behind foreground islands
-  - Falls underneath the bridge
-  - Direction stored when car becomes DOOMED (`this.bridgeIsPositive`)
+
+**Bridge Too Long (Turn Junction Only):**
+- When bridge extends too far past turn junction, car misses the turn
+- DOOMED state: Car drives automatically to fall point on far side of target island
+- Fall point: Opposite edge of target island + leeway (0.3 units past opposite edge)
+- Rendering order (direction-aware - **reversed from too short**):
+  - **Positive direction bridges**: Car renders before target island (car on far side)
+  - **Negative direction bridges**: Car renders after target island (car on far side)
+  - In both cases: car appears behind island it drove across, in front of more distant islands
+
+**FALLING State (Both Cases):**
+- Gravity: 20 units/second² acceleration (configurable via `GameConfig.physics.gravity`)
+- Tumble rate: 3.0 radians/second rotation (configurable via `GameConfig.physics.tumbleRate`)
+- Car position remains at (row, col) where it fell
+- Z-offset increases positively (moves down on screen)
+- Car rotates continuously while falling
+- Falls underneath the bridge
+- Direction stored when car becomes DOOMED (`this.bridgeIsPositive`)
 - Game over: When car falls more than 100 units below plane
 - No recovery possible once falling begins
 
@@ -818,14 +846,21 @@ const finalPos = startPos + signedDistance;
 
 ### Completed (Continued)
 - ✅ Bridge outcome evaluation system
-  - Three outcomes: too short, slightly short (forgiveness), safe
+  - Four outcomes: too short, slightly short (forgiveness), safe, too long
   - Leeway mechanic (0.3 units) for close attempts
   - Bridge length extension when forgiveness applied
+  - Maximum bridge length cap (minSafe + 2.0 units)
 - ✅ Car falling mechanic (bridge too short)
   - DOOMED state: car drives to fall point
   - FALLING state: gravity, tumble rotation, z-offset
   - Proper rendering order (behind foreground islands, under bridge)
   - Game over when car falls out of view
+- ✅ Car falling mechanic (bridge too long)
+  - Junction type detection (straight vs turn)
+  - Turn junctions: car misses turn if bridge extends too far past junction
+  - DOOMED state: car drives to opposite edge of target island
+  - Rendering order reversal (car on far side, opposite from too-short case)
+  - Straight junctions: safe regardless of bridge length (only costs time)
 - ✅ Physics system
   - Gravity acceleration (20 units/second²)
   - Tumble rotation while falling (3.0 rad/s)
@@ -833,7 +868,6 @@ const finalPos = startPos + signedDistance;
 ### Planned
 - ⏳ Mouse input handling for bridge building
 - ⏳ Player-controlled bridge length (hold duration)
-- ⏳ Car falling animation (bridge too long)
 - ⏳ Vertical scrolling to follow car (currently implemented but may need refinement)
 - ⏳ Game states (start screen, playing, game over, win)
 - ⏳ Sound effects
