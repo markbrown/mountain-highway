@@ -241,26 +241,47 @@ The `Viewport` class manages what portion of the game world is visible:
 **Bridge Rendering:**
 - Vertical bridge: Rectangle extending upward from island edge
 - Rotation animation: Bridge pivots from base edge where it attaches to road
-- Horizontal bridge: Starts 0.1 units back onto island to cover edge line
+- Horizontal bridge: Extends 0.1 units back onto start island and 0.1 units onto end island
+  - This covers the edge lines on both islands for seamless road appearance
+  - Rendered length = actual bridge length + 2 × baseOffset (0.2 units total extension)
 - Edge line behavior:
   - While bridge is vertical/rotating: Black edge line redrawn on top of bridge
-  - When bridge is horizontal: Edge line is covered by bridge for seamless road appearance
+  - When bridge is horizontal: Edge lines are covered by bridge extensions
 
-**Bridge Success Conditions:**
+**Bridge Outcome Evaluation:**
+
+When the bridge slam animation completes, the game evaluates the bridge length against the safe range and determines the outcome:
+
+**Three possible outcomes:**
+
+1. **Bridge too short** (length < minSafe - leeway):
+   - Car enters DOOMED state
+   - Car drives to predetermined fall point: bridge end + leeway distance
+   - Car transitions to FALLING state and tumbles off screen
+   - Game over when car falls out of view
+
+2. **Bridge slightly short - Forgiveness applied** (minSafe - leeway ≤ length < minSafe):
+   - Leeway value: 0.3 units (configurable via `GameConfig.bridge.leeway`)
+   - Bridge length is extended to exactly minSafe
+   - Bridge rendering is updated to use extended length
+   - Car continues safely - player gets a second chance for close attempts
+   - Console logs: "Bridge slightly short - applying forgiveness"
+
+3. **Bridge safe** (minSafe ≤ length ≤ maxSafe):
+   - Normal gameplay continues
+   - Car drives across bridge to next island
+
+**Safe Range Definition:**
 
 For **straight-ahead junctions** (column→column or row→row):
-- Minimum: Bridge must reach near edge of next island
+- Minimum: Bridge must reach near edge of next island (gap distance)
 - Maximum: Bridge must not extend past far edge of next island
 - Acceptable range: [gap distance, gap distance + island depth]
-- Too short: car falls into gap
-- Too long: car drives off far edge of next island
 
 For **turns** (left or right):
-- Minimum: Bridge must reach near edge of next island
+- Minimum: Bridge must reach near edge of next island (gap distance)
 - Maximum: Bridge must not extend past junction point
 - Acceptable range: [gap distance, gap distance + distance to junction]
-- Too short: car falls into gap
-- Too long: bridge extends past junction, car misses turn and drives off opposite edge
 
 **Visual Feedback:**
 - Only the vertical bridge length is shown during growth
@@ -289,6 +310,23 @@ For **turns** (left or right):
   - Stopping position = edge position - 0.3 (half car length) - 0.05 (margin)
   - Car waits at edge for bridge to be built
 - After bridge drops: Car immediately continues forward across bridge
+
+**Car Falling (Bridge Too Short):**
+- When bridge is too short (beyond forgiveness range), car enters DOOMED state
+- DOOMED state: Car drives automatically to fall point with no player control
+- Fall point: Bridge end + leeway (0.3 units past bridge end)
+- FALLING state:
+  - Gravity: 20 units/second² acceleration (configurable via `GameConfig.physics.gravity`)
+  - Tumble rate: 3.0 radians/second rotation (configurable via `GameConfig.physics.tumbleRate`)
+  - Car position remains at (row, col) where it fell
+  - Z-offset increases positively (moves down on screen)
+  - Car rotates continuously while falling
+- Rendering order: Car renders after target island but before nearer islands
+  - Appears in front of island it fell short of
+  - Disappears behind foreground islands
+  - Falls underneath the bridge
+- Game over: When car falls more than 100 units below plane
+- No recovery possible once falling begins
 
 ## Technical Details
 
@@ -631,11 +669,38 @@ The validation test suite (`test-validation.html`) provides comprehensive debugg
 
 ### Planned Improvements
 
+**Refactoring Strategy:**
+
+After completing Phases 1-3 of code cleanup (config centralization, removing redundant storage), we've decided to **postpone Phase 4** (renderer refactoring) until after implementing core gameplay mechanics.
+
+**Rationale:**
+- Phase 4 would refactor bridge rendering logic from Game into Renderer
+- But the next feature (car falling off short bridges) will require:
+  - New game states (FALLING, CRASHED)
+  - Physics simulation (gravity, rotation during fall)
+  - Collision detection at bridge ends
+  - Complex car rendering at arbitrary angles
+- These gameplay mechanics may reveal better refactoring opportunities than we can anticipate now
+- Implementing falling first will inform what the right architectural separation should be
+- Risk of refactoring in the wrong direction if done prematurely
+
+**Completed Refactoring (Phases 1-3):**
+- ✅ Phase 1: Quick wins - GameState constants, config centralization
+- ✅ Phase 2: Removed redundant canvas size storage
+- ✅ Phase 3: Removed redundant car/bridge config storage
+- ⏸️ Phase 4: Renderer refactoring - **deferred until after falling mechanic**
+
+**Next Steps:**
+1. Implement car falling mechanic (bridge too short/long)
+2. Implement physics and tumbling animation
+3. Reassess refactoring needs based on new complexity
+4. Determine if Phase 4 is still relevant or if different refactoring is needed
+
 **Medium Priority:**
 1. **Debug mode enhancements**: Add overlays for junction markers, car target position, current game state, road segment boundaries.
 
 **Low Priority:**
-2. **Decouple systems**: Create separate PathController, BridgeController, GameController for better modularity.
+2. **Decouple systems**: Create separate PathController, BridgeController, GameController for better modularity (reassess after falling mechanic).
 
 ## Future Features to Consider
 
@@ -749,12 +814,24 @@ const finalPos = startPos + signedDistance;
 - ✅ Course validation with 10 test cases
 - ✅ Test suite with visual debugging (grid, course overlay, island details)
 
+### Completed (Continued)
+- ✅ Bridge outcome evaluation system
+  - Three outcomes: too short, slightly short (forgiveness), safe
+  - Leeway mechanic (0.3 units) for close attempts
+  - Bridge length extension when forgiveness applied
+- ✅ Car falling mechanic (bridge too short)
+  - DOOMED state: car drives to fall point
+  - FALLING state: gravity, tumble rotation, z-offset
+  - Proper rendering order (behind foreground islands, under bridge)
+  - Game over when car falls out of view
+- ✅ Physics system
+  - Gravity acceleration (20 units/second²)
+  - Tumble rotation while falling (3.0 rad/s)
+
 ### Planned
 - ⏳ Mouse input handling for bridge building
 - ⏳ Player-controlled bridge length (hold duration)
-- ⏳ Bridge length validation and success/failure logic
-- ⏳ Car falling animation (bridge too short/long)
-- ⏳ Vertical scrolling to follow car
-- ⏳ Collision detection (car driving off edge)
+- ⏳ Car falling animation (bridge too long)
+- ⏳ Vertical scrolling to follow car (currently implemented but may need refinement)
 - ⏳ Game states (start screen, playing, game over, win)
 - ⏳ Sound effects

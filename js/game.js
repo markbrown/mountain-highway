@@ -6,6 +6,8 @@ const GameState = {
     TURNING: 'turning',
     BRIDGE_GROWING: 'bridge_growing',
     BRIDGE_SLAMMING: 'bridge_slamming',
+    DOOMED: 'doomed',
+    FALLING: 'falling',
     SEGMENT_DONE: 'segment_done',
     DONE: 'done'
 };
@@ -49,6 +51,13 @@ class Game {
         this.gameState = GameState.DRIVING;
         this.stateProgress = 0;
         this.lastTime = 0;
+
+        // Falling state
+        this.fallPoint = null;        // Position where car runs out of bridge
+        this.carZOffset = 0;          // Vertical offset when falling (negative = down)
+        this.carFallVelocity = 0;     // Current falling velocity
+        this.carTumbleRotation = 0;   // Rotation angle while tumbling
+        this.targetIslandIndex = -1;  // Island index for rendering order
 
         // Car sprites
         this.carSprites = {
@@ -255,6 +264,51 @@ class Game {
                     }
                 }
             }
+        } else if (this.gameState === GameState.DOOMED) {
+            // Car drives to fall point (same logic as DRIVING but transitions to FALLING)
+            if (this.carDirection === 'column') {
+                // Check if we're moving forward or backward
+                if (this.targetPosition >= this.carCol) {
+                    // Moving forward (positive direction)
+                    this.carCol += GameConfig.car.speed * deltaTime;
+                    if (this.carCol >= this.targetPosition) {
+                        this.carRow = this.fallPoint.row;
+                        this.carCol = this.fallPoint.col;
+                        this.gameState = GameState.FALLING;
+                        this.carFallVelocity = 0;
+                    }
+                } else {
+                    // Moving backward (negative direction)
+                    this.carCol -= GameConfig.car.speed * deltaTime;
+                    if (this.carCol <= this.targetPosition) {
+                        this.carRow = this.fallPoint.row;
+                        this.carCol = this.fallPoint.col;
+                        this.gameState = GameState.FALLING;
+                        this.carFallVelocity = 0;
+                    }
+                }
+            } else {
+                // Check if we're moving forward or backward
+                if (this.targetPosition >= this.carRow) {
+                    // Moving forward (positive direction)
+                    this.carRow += GameConfig.car.speed * deltaTime;
+                    if (this.carRow >= this.targetPosition) {
+                        this.carRow = this.fallPoint.row;
+                        this.carCol = this.fallPoint.col;
+                        this.gameState = GameState.FALLING;
+                        this.carFallVelocity = 0;
+                    }
+                } else {
+                    // Moving backward (negative direction)
+                    this.carRow -= GameConfig.car.speed * deltaTime;
+                    if (this.carRow <= this.targetPosition) {
+                        this.carRow = this.fallPoint.row;
+                        this.carCol = this.fallPoint.col;
+                        this.gameState = GameState.FALLING;
+                        this.carFallVelocity = 0;
+                    }
+                }
+            }
         } else if (this.gameState === GameState.TURNING) {
             // Instant turn, advance to next segment
             this.startNextSegment();
@@ -274,11 +328,26 @@ class Game {
             if (this.stateProgress >= GameConfig.bridge.slamDuration) {
                 // Final rotation depends on bridge direction
                 this.bridgeRotation = pos.isPositive ? (Math.PI / 2) : (-Math.PI / 2);
-                this.startNextSegment();
+
+                // Evaluate bridge outcome
+                this.evaluateBridgeOutcome();
             } else {
                 const t = this.stateProgress / GameConfig.bridge.slamDuration;
                 // Rotate in opposite direction for negative bridges
                 this.bridgeRotation = pos.isPositive ? (Math.PI / 2) * t : (-Math.PI / 2) * t;
+            }
+        } else if (this.gameState === GameState.FALLING) {
+            // Apply gravity and tumble rotation
+            this.carFallVelocity += GameConfig.physics.gravity * deltaTime;
+            this.carZOffset += this.carFallVelocity * deltaTime;
+            this.carTumbleRotation += GameConfig.physics.tumbleRate * deltaTime;
+
+            // Check if car has fallen out of view (arbitrary threshold)
+            if (this.carZOffset > 100) {
+                console.log('Car has fallen out of view - Game Over');
+                // For now, just stop the animation
+                // TODO: Add proper game over state
+                this.gameState = GameState.DONE;
             }
         } else if (this.gameState === GameState.SEGMENT_DONE) {
             // Start next segment
@@ -330,6 +399,60 @@ class Game {
         }
     }
 
+    /**
+     * Evaluate bridge outcome after slam completes
+     * Determines if bridge is safe, too short (with/without leeway), or too long
+     */
+    evaluateBridgeOutcome() {
+        const bridgeIndex = this.currentSegment.bridgeIndex;
+        const bridges = this.level.getBridges();
+        const currentBridge = bridges[bridgeIndex];
+        const safeRange = currentBridge.calculateRange(this.islands);
+        const leeway = GameConfig.bridge.leeway;
+
+        // Apply forgiveness for slightly short bridges
+        if (this.bridgeLength >= safeRange.minSafe - leeway && this.bridgeLength < safeRange.minSafe) {
+            console.log('Bridge slightly short - applying forgiveness (extending to minimum)');
+            this.bridgeLength = safeRange.minSafe;
+            // Also update the bridge data so rendering uses the extended length
+            this.bridgeSequence[bridgeIndex].targetLength = safeRange.minSafe;
+        }
+
+        // Check if bridge is too short (after forgiveness)
+        if (this.bridgeLength < safeRange.minSafe) {
+            // Bridge is too short - car is doomed
+            console.log('Bridge too short! Length:', this.bridgeLength, 'Min:', safeRange.minSafe);
+
+            // Calculate fall point: bridge start + bridge length + leeway
+            const pos = this.bridgePositions[bridgeIndex];
+            const sign = pos.isPositive ? 1 : -1;
+            const fallDistance = this.bridgeLength + leeway;
+
+            if (pos.direction === 'column') {
+                const bridgeStart = pos.edgeCol;
+                this.fallPoint = { row: pos.baseRow, col: bridgeStart + (sign * fallDistance) };
+                this.targetPosition = this.fallPoint.col;
+            } else {
+                const bridgeStart = pos.edgeRow;
+                this.fallPoint = { row: bridgeStart + (sign * fallDistance), col: pos.baseCol };
+                this.targetPosition = this.fallPoint.row;
+            }
+
+            this.targetIslandIndex = currentBridge.endIsland;
+            this.gameState = GameState.DOOMED;
+
+        } else if (this.bridgeLength <= safeRange.maxSafe) {
+            // Bridge is safe - continue normal gameplay
+            console.log('Bridge safe! Length:', this.bridgeLength, 'Range:', safeRange.minSafe, '-', safeRange.maxSafe);
+            this.startNextSegment();
+
+        } else {
+            // Bridge is too long - defer this case for later
+            console.log('Bridge too long! (Not yet implemented)');
+            this.startNextSegment(); // For now, just continue
+        }
+    }
+
     render() {
         // Update viewport to follow car
         this.updateViewport();
@@ -364,7 +487,9 @@ class Game {
             .map(item => item.idx);
 
         // Render each island completely (colors → road → lines) from farthest to nearest
-        sortedIndices.forEach(islandIndex => {
+        // For falling car: pause after target island to render car, then continue with nearer islands
+        for (let i = 0; i < sortedIndices.length; i++) {
+            const islandIndex = sortedIndices[i];
             const [row, col, width, height] = this.islands[islandIndex];
 
             // Step 1: Draw island base colors (green and brown)
@@ -376,7 +501,31 @@ class Game {
 
             // Step 3: Draw island outlines (black lines)
             this.renderer.drawIslandOutlines(corners);
-        });
+
+            // If car is falling and we just rendered the target island, render the falling car now
+            if (this.gameState === GameState.FALLING && islandIndex === this.targetIslandIndex) {
+                // Render car with z-offset (falling into the abyss)
+                this.renderer.ctx.save();
+
+                // Apply z-offset as vertical translation in screen space
+                this.renderer.ctx.translate(0, this.carZOffset * blockSize);
+
+                // Draw car with tumble rotation
+                const screenPos = this.renderer.gameToScreen(this.carRow, this.carCol);
+                const screenX = screenPos.x * blockSize;
+                const screenY = screenPos.y * blockSize;
+
+                this.renderer.ctx.save();
+                this.renderer.ctx.translate(screenX, screenY);
+                this.renderer.ctx.rotate(this.carTumbleRotation);
+                this.renderer.ctx.translate(-screenX, -screenY);
+
+                this.renderer.drawCar(this.carRow, this.carCol, this.carDirection, blockSize, this.carSprites, this.spritesLoaded);
+
+                this.renderer.ctx.restore();
+                this.renderer.ctx.restore();
+            }
+        }
 
         // Draw debug bridge zones (optional - shows min/max safe bridge lengths)
         if (this.showBridgeZones) {
@@ -424,13 +573,15 @@ class Game {
             } else if (isCompleted) {
                 // Draw completed bridge (horizontal)
                 // Base offset and length direction depend on bridge direction
+                // Bridge extends baseOffset back onto start island (covers edge line)
+                // and baseOffset onto end island (covers edge line)
                 if (pos.direction === 'column') {
                     const offsetCol = pos.isPositive ? (pos.edgeCol - baseOffset) : (pos.edgeCol + baseOffset);
-                    const bridgeLength = pos.isPositive ? (bridgeData.targetLength + baseOffset) : -(bridgeData.targetLength + baseOffset);
+                    const bridgeLength = pos.isPositive ? (bridgeData.targetLength + 2 * baseOffset) : -(bridgeData.targetLength + 2 * baseOffset);
                     this.renderer.drawHorizontalBridge(pos.baseRow, offsetCol, pos.direction, bridgeLength, blockSize);
                 } else {
                     const offsetRow = pos.isPositive ? (pos.edgeRow - baseOffset) : (pos.edgeRow + baseOffset);
-                    const bridgeLength = pos.isPositive ? (bridgeData.targetLength + baseOffset) : -(bridgeData.targetLength + baseOffset);
+                    const bridgeLength = pos.isPositive ? (bridgeData.targetLength + 2 * baseOffset) : -(bridgeData.targetLength + 2 * baseOffset);
                     this.renderer.drawHorizontalBridge(offsetRow, pos.baseCol, pos.direction, bridgeLength, blockSize);
                 }
             }
@@ -465,8 +616,10 @@ class Game {
             }
         });
 
-        // Draw car at current position
-        this.renderer.drawCar(this.carRow, this.carCol, this.carDirection, blockSize, this.carSprites, this.spritesLoaded);
+        // Draw car at current position (unless it's falling - already rendered in special position)
+        if (this.gameState !== GameState.FALLING) {
+            this.renderer.drawCar(this.carRow, this.carCol, this.carDirection, blockSize, this.carSprites, this.spritesLoaded);
+        }
 
         // Draw negative direction bridges being animated (in front of car)
         this.pathSegments.forEach((segment, idx) => {

@@ -34,8 +34,8 @@ class Level {
         return bridges.map(bridge => {
             const range = bridge.calculateRange(this.islands);
 
-            // Target length: minimum gap + 0.5 units for overlap onto next island
-            const targetLength = range.minSafe + 0.5;
+            // TEST: Target length 0.2 units SHORT of minimum (within leeway - should be forgiven)
+            const targetLength = range.minSafe - 0.2;
 
             // Hold time: how long to hold the button (length / growth rate)
             const holdTime = targetLength / GameConfig.bridge.growthRate;

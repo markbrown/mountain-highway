@@ -40,7 +40,14 @@ const GameConfig = {
         growthRate: 2.0,  // Bridge growth rate in units per second
         slamDuration: 0.2, // Time for bridge to rotate down (seconds)
         color: '#444444',  // Same as road
-        baseOffset: 0.1    // How far bridge starts back onto island edge
+        baseOffset: 0.1,   // How far bridge starts back onto island edge
+        leeway: 0.3        // Forgiveness distance for slightly short bridges (units)
+    },
+
+    // Physics
+    physics: {
+        gravity: 20.0,     // Falling acceleration in units per second squared
+        tumbleRate: 3.0    // Rotation speed while falling (radians per second)
     },
 
     // Island rendering
