@@ -169,3 +169,83 @@ const viewport = new Viewport(minRow, maxRow, minCol, maxCol,
 - Set `canvas.width/height` properties (not just CSS)
 - Viewport constructor needs the final canvas dimensions
 - This enables test views that automatically scale to show all content
+
+### Isometric Viewport Scrolling
+
+Scrolling a viewport in an isometric projection requires careful handling of the coordinate transform. This was particularly tricky to implement correctly.
+
+**The Core Challenge**: In isometric projection, vertical screen position depends on BOTH row and column coordinates:
+```javascript
+screenY = -(row + col) / 2
+```
+
+This means:
+- Smaller `(row + col)` sum = more positive screenY = visually higher on screen
+- Larger `(row + col)` sum = more negative screenY = visually lower on screen
+
+**The Scrolling Problem**:
+
+When implementing scrolling for a racing game where:
+- Start of course is at the bottom of the screen (canvas Y = canvasHeight)
+- End of course is at the top of the screen (canvas Y = 0)
+- Car drives from bottom to top, with viewport following
+
+You need to:
+1. **Center the car** in the viewport during normal gameplay
+2. **Clamp scrolling** so you never see beyond the course boundaries
+
+**The Solution - Offset Clamping**:
+
+Calculate three key offsets:
+
+```javascript
+// 1. Offset when START of course is at BOTTOM of canvas
+const startScreenY = -(minRow + minCol) / 2;
+const offsetWhenAtStart = canvasHeight - startScreenY * blockSize;
+
+// 2. Offset when END of course is at TOP of canvas
+const endScreenY = -(maxRow + maxCol) / 2;
+const offsetWhenAtEnd = -endScreenY * blockSize;
+
+// 3. Offset that centers the car
+const carScreenY = -(carRow + carCol) / 2;
+const offsetCentered = canvasHeight / 2 - carScreenY * blockSize;
+
+// 4. Clamp the centered offset between start and end bounds
+// offsetWhenAtStart < offsetWhenAtEnd (numerical relationship)
+const offsetY = Math.max(offsetWhenAtStart, Math.min(offsetWhenAtEnd, offsetCentered));
+```
+
+**Key Insights**:
+
+1. **Use (row + col) for vertical positions**, not just row. The column component matters!
+
+2. **Course bounds must be separate from viewport bounds**:
+   - Viewport bounds (minRow, maxRow, minCol, maxCol) define the moving window you're currently showing
+   - Course bounds define the full extent of content, used for clamping
+   - Pass course bounds separately to the Viewport for clamping calculations
+
+3. **Offset math**: When applying `ctx.translate(offsetX, offsetY)`:
+   ```
+   canvasY = screenY * blockSize + offsetY
+   ```
+   To position a specific point at a specific canvas Y:
+   ```
+   offsetY = targetCanvasY - screenY * blockSize
+   ```
+
+4. **Clamping direction matters**:
+   - Start at bottom (large canvas Y) requires smaller offset
+   - End at top (canvas Y = 0) requires larger offset
+   - Use `Math.max(min, Math.min(max, centered))` to clamp properly
+
+5. **Testing approach**: Use specific corner cases to verify:
+   - At start: Is the start boundary at the bottom of the canvas?
+   - At end: Is the end boundary at the top of the canvas?
+   - In middle: Is the car centered?
+
+**Common Pitfalls**:
+- Forgetting that vertical position depends on BOTH row and col
+- Using viewport bounds instead of course bounds for clamping
+- Getting the clamping direction backwards (Math.max vs Math.min)
+- Confusing "visual top/bottom" with "numerical min/max" in isometric space

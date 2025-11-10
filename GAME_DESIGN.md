@@ -88,28 +88,107 @@ When extending a course with a new span:
 
 ## Viewport and Scrolling
 
-**Camera System:**
-- Fixed horizontal framing: Horizontally centered on grid origin (0,0) throughout the game
-- Dynamic vertical scrolling: Follows the car vertically as it progresses through the course
-- Car positioning: Car is kept approximately halfway up the viewport for optimal visibility
+### Three Coordinate Systems
 
-**Viewport Dimensions:**
-- Column range: Fixed at -1 to 9 (shows full course width, no horizontal scrolling)
+The rendering system uses three coordinate systems:
+
+1. **Game Coordinates** (row, col)
+   - Logical grid positions in the game world
+   - Example: `(row=10, col=5)` is a position on the grid
+
+2. **Screen Space** (x, y) - Isometric projection (unscaled)
+   - Isometric projection formulas:
+     - `x = col - row`
+     - `y = -(col + row) / 2`
+   - **Important**: Y is negative going upward in visual space
+     - Row 0, Col 0 → screen Y = 0
+     - Row 10, Col 0 → screen Y = -5
+     - Higher rows = more negative Y values
+
+3. **Canvas Coordinates** (pixels)
+   - Final pixel positions on the HTML5 canvas
+   - Formula: `canvas = screenSpace × blockSize + offset`
+   - Canvas Y increases downward (standard screen convention)
+   - Top-left of canvas is (0, 0)
+
+### Viewport System
+
+The `Viewport` class manages what portion of the game world is visible:
+
+**Two Operating Modes:**
+
+1. **Auto-sized canvas** (used in test views):
+   - Canvas size = exactly what's needed to show the full viewport
+   - Offset positions viewport at canvas origin
+   - No scrolling - entire game region visible
+
+2. **Fixed canvas with scrolling** (used in main game, 800×600):
+   - Canvas size is fixed
+   - Viewport shows a moving window into the game world
+   - Offset centers the viewport region on the canvas
+   - Changing minRow/maxRow values = vertical scrolling
+
+### Camera System
+
+**Fixed horizontal framing:**
+- Horizontally centered on grid origin (0,0) throughout the game
+- Column range dynamically calculated from course bounds
+- Shows full course width, no horizontal scrolling
+
+**Dynamic vertical scrolling:**
+- Follows the car vertically as it progresses through the course
+- Car kept approximately halfway up the viewport for optimal visibility
 - Row range: Dynamic window of ~8 rows tall
-- The viewport shows approximately half the course height at any given time
 
-**Scrolling Behavior:**
-- Viewport updates every frame based on car's current row position
+### Scrolling Behavior
+
+**Frame-by-frame updates:**
+- Viewport recalculated every frame based on car's current row position
 - Desired viewport: Centered on `carRow ± 4 rows` (with 1-row margin)
-- Clamped to course bounds: Never scrolls past top or bottom of the course
-- At start: Shows rows -1 to 9 (car near bottom, includes course start)
-- During gameplay: Scrolls smoothly to keep car vertically centered
-- At end: Shows rows 5 to 15 (car near top, includes course end)
+- Clamped to course bounds: Never scrolls past top or bottom
 
-**Technical Implementation:**
-- Course bounds calculated from all island extents (with 1-unit margin)
-- Viewport's `getOffset()` keeps horizontal centered on (0,0) while vertical centers on current row range
-- This ensures only vertical scrolling with no horizontal drift in isometric projection
+**Scrolling Direction (this is confusing!):**
+- To scroll toward **higher row numbers** (visually downward on course):
+  - Increase minRow/maxRow values
+  - Screen Y becomes more negative
+  - Canvas offset shifts content downward on screen
+
+- To scroll toward **lower row numbers** (visually upward on course):
+  - Decrease minRow/maxRow values
+  - Screen Y becomes more positive
+  - Canvas offset shifts content upward on screen
+
+**Why it's confusing**: Screen space Y is negative going up (due to isometric formula), opposite of typical screen coordinates.
+
+### Technical Implementation
+
+**Course bounds calculation:**
+- `calculateCourseBounds()` finds min/max row/col from all islands
+- Adds 1-unit margin on all sides
+
+**Viewport offset calculation:**
+- `getOffset(carRow, carCol)` returns translation to apply before drawing
+- Horizontal: Centers on grid origin (0,0)
+- Vertical: Centers car position on canvas, clamped to course bounds
+- **Critical insight**: Vertical screen position uses `-(row + col) / 2` formula
+  - This means BOTH row and column affect vertical position in isometric projection
+  - Start of course (minRow, minCol): `startScreenY = -(minRow + minCol) / 2`
+  - End of course (maxRow, maxCol): `endScreenY = -(maxRow + maxCol) / 2`
+  - Car position: `carScreenY = -(carRow + carCol) / 2`
+
+**Clamping logic:**
+- Three offsets are calculated:
+  1. `offsetWhenAtStart = canvasHeight - startScreenY * blockSize` (start at bottom of canvas)
+  2. `offsetWhenAtEnd = -endScreenY * blockSize` (end at top of canvas)
+  3. `offsetCentered = canvasHeight/2 - carScreenY * blockSize` (car centered)
+- Final offset: `Math.max(offsetWhenAtStart, Math.min(offsetWhenAtEnd, offsetCentered))`
+- This ensures:
+  - At game start: Start of course is at bottom of canvas (can't scroll to see below start)
+  - At game end: End of course is at top of canvas (can't scroll to see above end)
+  - During gameplay: Car stays centered vertically
+- Course bounds (-1,-1) to (maxRow+1, maxCol+1) are passed to Viewport for clamping
+- Viewport bounds (dynamic window) are separate from course bounds (fixed extent)
+- Applied via `ctx.translate(offset.x, offset.y)` before rendering
 
 ## World Layout
 

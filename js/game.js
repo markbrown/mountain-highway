@@ -89,10 +89,9 @@ class Game {
         // Calculate full course bounds
         const courseBounds = this.calculateCourseBounds();
 
-        // Fixed column range centered around course
-        // Keep the same column range throughout (no horizontal scrolling)
-        const minCol = -1;
-        const maxCol = 9;
+        // Use course bounds for column range (no horizontal scrolling, show full width)
+        const minCol = courseBounds.minCol;
+        const maxCol = courseBounds.maxCol;
 
         // Calculate viewport height in grid units
         // We want to show roughly half the course height at a time for scrolling
@@ -126,7 +125,7 @@ class Game {
             minRow = courseBounds.minRow;
         }
 
-        return new Viewport(minRow, maxRow, minCol, maxCol, blockSize, canvasWidth, canvasHeight);
+        return new Viewport(minRow, maxRow, minCol, maxCol, blockSize, canvasWidth, canvasHeight, courseBounds);
     }
 
     init() {
@@ -306,7 +305,7 @@ class Game {
 
         // Apply viewport transform
         this.renderer.ctx.save();
-        const offset = this.viewport.getOffset();
+        const offset = this.viewport.getOffset(this.carRow, this.carCol);
         this.renderer.ctx.translate(offset.x, offset.y);
 
         // Draw debug grid (optional - for development)

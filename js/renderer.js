@@ -13,8 +13,9 @@ class Viewport {
      * @param {number} blockSize - Size of each grid square in pixels
      * @param {number} fixedWidth - Optional fixed canvas width (otherwise auto-calculated)
      * @param {number} fixedHeight - Optional fixed canvas height (otherwise auto-calculated)
+     * @param {Object} courseBounds - Optional course bounds for clamping {minRow, maxRow, minCol, maxCol}
      */
-    constructor(minRow, maxRow, minCol, maxCol, blockSize = GameConfig.grid.blockSize, fixedWidth = null, fixedHeight = null) {
+    constructor(minRow, maxRow, minCol, maxCol, blockSize = GameConfig.grid.blockSize, fixedWidth = null, fixedHeight = null, courseBounds = null) {
         this.minRow = minRow;
         this.maxRow = maxRow;
         this.minCol = minCol;
@@ -22,6 +23,7 @@ class Viewport {
         this.blockSize = blockSize;
         this.fixedWidth = fixedWidth;
         this.fixedHeight = fixedHeight;
+        this.courseBounds = courseBounds;
 
         // Calculate canvas size needed for this viewport
         this.calculateCanvasSize();
@@ -65,23 +67,68 @@ class Viewport {
     /**
      * Get the translation offset to apply before rendering
      * This positions the viewport region at the origin of the canvas
+     * @param {number} carRow - Car's current row position (for centering during scrolling)
+     * @param {number} carCol - Car's current column position (for centering during scrolling)
      */
-    getOffset() {
+    getOffset(carRow = null, carCol = null) {
         if (this.fixedWidth !== null && this.fixedHeight !== null) {
             // For fixed canvas size with vertical scrolling:
             // - Keep horizontal centered on origin (0,0) in grid space
-            // - Vertical position centers the current viewport region
+            // - Vertical scrolling keeps car centered, clamped to course bounds
 
             // Origin (0,0) in grid space maps to screen space as:
             const originScreenX = 0;  // col - row = 0 - 0
-            const originScreenY = 0;  // -(col + row)/2 = 0
 
             // Center horizontally on grid origin
             const offsetX = this.canvasWidth / 2 - originScreenX * this.blockSize;
 
-            // Center vertically on viewport region
-            const centerY = (this.screenMinY + this.screenMaxY) / 2;
-            const offsetY = this.canvasHeight / 2 - centerY * this.blockSize;
+            // Vertical offset calculation:
+            // Screen Y position is proportional to (row + col), not just row
+            // Formula: screenY = -(row + col) / 2
+            // Smaller (row+col) = more positive screenY = visually higher (top of course)
+            // Larger (row+col) = more negative screenY = visually lower (bottom of course)
+
+            // Course visual layout:
+            // - Start of course (small row+col) is at BOTTOM of screen (canvas Y = canvasHeight)
+            // - End of course (large row+col) is at TOP of screen (canvas Y = 0)
+            // - More negative screenY = higher in race = visually higher (toward top)
+
+            // 1. Calculate offset when START of course is at BOTTOM of canvas
+            // Start is the corner with minimum (row + col) - which is (minRow, minCol)
+            const startRow = this.courseBounds ? this.courseBounds.minRow : this.minRow;
+            const startCol = this.courseBounds ? this.courseBounds.minCol : this.minCol;
+            const startScreenY = -(startRow + startCol) / 2;
+            // When start is at bottom of canvas: canvasHeight = startScreenY * blockSize + offset
+            // offset = canvasHeight - startScreenY * blockSize
+            const offsetWhenAtStart = this.canvasHeight - startScreenY * this.blockSize;
+
+            // 2. Calculate offset when END of course is at TOP of canvas
+            // End is the corner with maximum (row + col) - which is (maxRow, maxCol)
+            const endRow = this.courseBounds ? this.courseBounds.maxRow : this.maxRow;
+            const endCol = this.courseBounds ? this.courseBounds.maxCol : this.maxCol;
+            const endScreenY = -(endRow + endCol) / 2;
+            // When end is at top of canvas (canvas Y = 0): 0 = endScreenY * blockSize + offset
+            // offset = -endScreenY * blockSize
+            const offsetWhenAtEnd = -endScreenY * this.blockSize;
+
+            // 3. Calculate offset that centers the car vertically
+            let offsetCentered;
+            if (carRow !== null && carCol !== null) {
+                // Use car's actual position
+                const carScreenY = -(carRow + carCol) / 2;
+                offsetCentered = this.canvasHeight / 2 - carScreenY * this.blockSize;
+            } else {
+                // Fallback: center the viewport bounds
+                const centerRow = (this.minRow + this.maxRow) / 2;
+                const centerCol = (this.minCol + this.maxCol) / 2;
+                const centerScreenY = -(centerRow + centerCol) / 2;
+                offsetCentered = this.canvasHeight / 2 - centerScreenY * this.blockSize;
+            }
+
+            // 4. Clamp centered offset so we don't scroll past course boundaries
+            // offsetWhenAtStart < offsetWhenAtEnd (start at bottom needs smaller offset than end at top)
+            // We want: offsetWhenAtStart <= offsetY <= offsetWhenAtEnd
+            const offsetY = Math.max(offsetWhenAtStart, Math.min(offsetWhenAtEnd, offsetCentered));
 
             return { x: offsetX, y: offsetY };
         } else {
