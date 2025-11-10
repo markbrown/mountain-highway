@@ -55,7 +55,7 @@ const GameConfig = {
 
     // Debug settings
     debug: {
-        showGrid: true,
+        showGrid: false,
         showIslandNumbers: false,
         showBridgeZones: false,
         gridOpacity: 0.15,

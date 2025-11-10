@@ -383,10 +383,18 @@
             () => createExampleCourse(),
             () => [
                 [0, 0, 2, 2],   // Island 0: Start (0 bridges crossed)
-                [0, 4, 2, 2],   // Island 1: After bridge 0
-                [5, 4, 2, 2],   // Island 2: After bridge 1
+                [0, 4, 2, 2],   // Island 1: After bridge 0 (1 bridge crossed)
+                [5, 4, 2, 2],   // Island 2: After bridge 1 (2 bridges crossed)
                 [8, 4, 4, 2],   // Island 3: After bridge 2 (has 2 junctions)
-                [11, 6, 2, 3],  // Island 4: After bridge 3 (final destination) - 3 rows × 2 cols
+                [11, 6, 2, 3],  // Island 4: After bridge 3 - 3 rows × 2 cols
+                [12, 9, 2, 2],  // Island 5: After bridge 4
+                [8, 9, 2, 2],   // Island 6: After bridge 5 (negative span)
+                [5, 9, 5, 2],   // Island 7: After bridge 6 (has 2 junctions) - 2 rows × 5 cols
+                [10, 12, 2, 2], // Island 8: After bridge 7 - centered on junction (11,13)
+                [14, 12, 2, 5], // Island 9: After bridge 8 (has 2 junctions) - 5 rows × 2 cols
+                [17, 16, 2, 2], // Island 10: After bridge 9 - centered on junction (18,17)
+                [17, 19, 4, 2], // Island 11: After bridge 10 - 2 rows × 4 cols
+                [21, 21, 2, 2], // Island 12: After bridge 11 (end) - centered on junction (22,22)
             ],
             true
         );

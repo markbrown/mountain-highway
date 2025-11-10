@@ -454,7 +454,8 @@ function createExampleCourse() {
     course.addSpan(5, Direction.ROW);     // +5 rows to (11,13), turn (bridge to island 8)
     course.addSpan(7, Direction.ROW);     // +7 rows to (18,13), turn (bridge to island 9, stays on island 9)
     course.addSpan(4, Direction.COLUMN);  // +4 columns to (18,17), turn (bridge to island 10)
-    course.addSpan(5, Direction.COLUMN);  // +5 columns to (18,22), end (bridge to island 11)
+    course.addSpan(5, Direction.COLUMN);  // +5 columns to (18,22), turn (bridge to island 11)
+    course.addSpan(4, Direction.ROW);     // +4 rows to (22,22), end (bridge to island 12)
     return course;
 }
 
@@ -479,7 +480,8 @@ function createExampleLevel() {
         [10, 12, 2, 2], // Island 8: After bridge 7 - centered on junction (11,13)
         [14, 12, 2, 5], // Island 9: After bridge 8 (has 2 junctions) - 5 rows × 2 cols, centered on junction (15,13)
         [17, 16, 2, 2], // Island 10: After bridge 9 - centered on junction (18,17)
-        [17, 19, 4, 2], // Island 11: After bridge 10 (end) - 2 rows × 4 cols, junction at (18,22)
+        [17, 19, 4, 2], // Island 11: After bridge 10 - 2 rows × 4 cols, junction at (18,22)
+        [21, 21, 2, 2], // Island 12: After bridge 11 (end) - centered on junction (22,22)
     ];
 
     return new Level(course, islands);
