@@ -32,11 +32,6 @@ class Game {
         this.carRow = 1;
         this.carCol = 1;
         this.carDirection = 'column'; // Direction car is facing
-        this.carSpeed = GameConfig.car.speed;
-
-        // Bridge animation state
-        this.bridgeGrowthRate = GameConfig.bridge.growthRate;
-        this.slamDuration = GameConfig.bridge.slamDuration;
 
         // Path segments - calculated from course
         this.pathSegments = this.course.getPathSegments(this.islands);
@@ -229,14 +224,14 @@ class Game {
                 // Check if we're moving forward or backward
                 if (this.targetPosition >= this.carCol) {
                     // Moving forward (positive direction)
-                    this.carCol += this.carSpeed * deltaTime;
+                    this.carCol += GameConfig.car.speed * deltaTime;
                     if (this.carCol >= this.targetPosition) {
                         this.carCol = this.targetPosition;
                         this.gameState = GameState.SEGMENT_DONE;
                     }
                 } else {
                     // Moving backward (negative direction)
-                    this.carCol -= this.carSpeed * deltaTime;
+                    this.carCol -= GameConfig.car.speed * deltaTime;
                     if (this.carCol <= this.targetPosition) {
                         this.carCol = this.targetPosition;
                         this.gameState = GameState.SEGMENT_DONE;
@@ -246,14 +241,14 @@ class Game {
                 // Check if we're moving forward or backward
                 if (this.targetPosition >= this.carRow) {
                     // Moving forward (positive direction)
-                    this.carRow += this.carSpeed * deltaTime;
+                    this.carRow += GameConfig.car.speed * deltaTime;
                     if (this.carRow >= this.targetPosition) {
                         this.carRow = this.targetPosition;
                         this.gameState = GameState.SEGMENT_DONE;
                     }
                 } else {
                     // Moving backward (negative direction)
-                    this.carRow -= this.carSpeed * deltaTime;
+                    this.carRow -= GameConfig.car.speed * deltaTime;
                     if (this.carRow <= this.targetPosition) {
                         this.carRow = this.targetPosition;
                         this.gameState = GameState.SEGMENT_DONE;
@@ -265,7 +260,7 @@ class Game {
             this.startNextSegment();
         } else if (this.gameState === GameState.BRIDGE_GROWING) {
             const bridgeData = this.bridgeSequence[this.currentSegment.bridgeIndex];
-            this.bridgeLength += this.bridgeGrowthRate * deltaTime;
+            this.bridgeLength += GameConfig.bridge.growthRate * deltaTime;
 
             if (this.bridgeLength >= bridgeData.targetLength) {
                 this.bridgeLength = bridgeData.targetLength;
@@ -276,12 +271,12 @@ class Game {
             this.stateProgress += deltaTime;
             const pos = this.bridgePositions[this.currentSegment.bridgeIndex];
 
-            if (this.stateProgress >= this.slamDuration) {
+            if (this.stateProgress >= GameConfig.bridge.slamDuration) {
                 // Final rotation depends on bridge direction
                 this.bridgeRotation = pos.isPositive ? (Math.PI / 2) : (-Math.PI / 2);
                 this.startNextSegment();
             } else {
-                const t = this.stateProgress / this.slamDuration;
+                const t = this.stateProgress / GameConfig.bridge.slamDuration;
                 // Rotate in opposite direction for negative bridges
                 this.bridgeRotation = pos.isPositive ? (Math.PI / 2) * t : (-Math.PI / 2) * t;
             }
