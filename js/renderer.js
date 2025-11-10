@@ -603,8 +603,40 @@ class Renderer {
      * @param {number} col - game grid column
      * @param {string} direction - 'row' or 'column' (direction car is facing)
      * @param {number} blockSize - size of each grid square in pixels
+     * @param {Object} sprites - car sprite images
+     * @param {boolean} spritesLoaded - whether sprites are loaded
      */
-    drawCar(row, col, direction, blockSize) {
+    drawCar(row, col, direction, blockSize, sprites = null, spritesLoaded = false) {
+        // Get car screen position
+        const screenPos = this.gameToScreen(row, col, 0);
+        const screenX = screenPos.x * blockSize;
+        const screenY = screenPos.y * blockSize;
+
+        // If sprites are available, use them
+        if (spritesLoaded && sprites) {
+            let sprite = null;
+            let spriteSize = 40; // All sprites use 40x40 viewBox
+
+            // Select sprite based on direction
+            // Rectangular prism looks the same from front/back, so we don't need to distinguish positive/negative
+            if (direction === 'row') {
+                sprite = sprites.rowPositive;
+            } else if (direction === 'column') {
+                sprite = sprites.columnPositive;
+            }
+
+            if (sprite) {
+                // Draw sprite centered at car position
+                this.ctx.drawImage(sprite,
+                    screenX - spriteSize / 2,
+                    screenY - spriteSize / 2,
+                    spriteSize,
+                    spriteSize);
+                return;
+            }
+        }
+
+        // Fallback: draw as colored rectangle (original implementation)
         const carLength = GameConfig.car.length;
         const carWidth = GameConfig.car.width;
 

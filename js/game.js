@@ -51,7 +51,46 @@ class Game {
         this.stateProgress = 0;
         this.lastTime = 0;
 
-        this.init();
+        // Car sprites
+        this.carSprites = {
+            rowPositive: null,
+            rowNegative: null,
+            columnPositive: null,
+            columnNegative: null
+        };
+        this.spritesLoaded = false;
+
+        this.loadSprites();
+    }
+
+    /**
+     * Load car sprite images
+     */
+    loadSprites() {
+        const spritesToLoad = 2; // row and column sprites
+        let loadedCount = 0;
+
+        const onSpriteLoad = () => {
+            loadedCount++;
+            if (loadedCount === spritesToLoad) {
+                this.spritesLoaded = true;
+                this.init();
+            }
+        };
+
+        // Load row direction sprite (same for positive/negative)
+        this.carSprites.rowPositive = new Image();
+        this.carSprites.rowPositive.onload = onSpriteLoad;
+        this.carSprites.rowPositive.src = 'assets/car-row-positive.svg';
+        // Rectangular prism looks the same from front/back
+        this.carSprites.rowNegative = this.carSprites.rowPositive;
+
+        // Load column direction sprite (same for positive/negative)
+        this.carSprites.columnPositive = new Image();
+        this.carSprites.columnPositive.onload = onSpriteLoad;
+        this.carSprites.columnPositive.src = 'assets/car-column-positive.svg';
+        // Rectangular prism looks the same from front/back
+        this.carSprites.columnNegative = this.carSprites.columnPositive;
     }
 
     /**
@@ -431,7 +470,7 @@ class Game {
         });
 
         // Draw car at current position
-        this.renderer.drawCar(this.carRow, this.carCol, this.carDirection, blockSize);
+        this.renderer.drawCar(this.carRow, this.carCol, this.carDirection, blockSize, this.carSprites, this.spritesLoaded);
 
         // Draw negative direction bridges being animated (in front of car)
         this.pathSegments.forEach((segment, idx) => {

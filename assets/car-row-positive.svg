@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Car traveling in positive row direction (down-right on screen) -->
+<!-- Shows: left side, top, rear -->
+<!-- Horizontally flipped version of column sprite -->
+<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+  <!-- Same as column sprite but flipped horizontally -->
+  <!-- Rear face (left) -->
+  <polygon points="24,14 24,8 16,12 16,18" fill="#990000" stroke="#000000" stroke-width="1"/>
+
+  <!-- Left side face -->
+  <polygon points="16,18 8,14 8,8 16,12" fill="#cc0000" stroke="#000000" stroke-width="1"/>
+
+  <!-- Top face -->
+  <polygon points="24,8 16,4 8,8 16,12" fill="#ff3333" stroke="#000000" stroke-width="1"/>
+</svg>

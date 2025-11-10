@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Car traveling in positive column direction (right on screen) -->
+<!-- Shows: right side, top, rear -->
+<!-- Simple rectangular prism: length=0.6, width=0.4, height=0.3 -->
+<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+  <!--
+  Isometric projection formulas:
+  screenX = (col - row) * blockSize
+  screenY = -(col + row) / 2 * blockSize
+
+  For a unit vector in column direction: screenX increases, screenY decreases
+  For a unit vector in row direction: screenX decreases, screenY decreases
+  For height: screenY decreases (going up)
+
+  Car dimensions in grid units:
+  - Length (column direction): 0.6
+  - Width (row direction): 0.4
+  - Height (up): 0.3
+
+  Let's center the car at origin (0, 0, 0) and use blockSize=40 for clear rendering
+  Car extends from:
+  - col: -0.3 to +0.3 (length)
+  - row: -0.2 to +0.2 (width)
+  - height: 0 to 0.3
+  -->
+
+  <!-- Rear face (visible from behind, facing negative column direction) -->
+  <!-- Corners: (-0.3, -0.2, 0), (-0.3, -0.2, 0.3), (-0.3, 0.2, 0.3), (-0.3, 0.2, 0) -->
+  <!-- Screen coords at col=-0.3: x = -0.3 - row, y = -(-0.3 + row)/2 = (0.3 - row)/2 -->
+  <polygon points="16,14 16,8 24,12 24,18" fill="#990000" stroke="#000000" stroke-width="1"/>
+
+  <!-- Right side face (row = +0.2) -->
+  <!-- Corners: (-0.3, 0.2, 0), (0.3, 0.2, 0), (0.3, 0.2, 0.3), (-0.3, 0.2, 0.3) -->
+  <!-- Screen x increases with col, y decreases with col -->
+  <polygon points="24,18 32,14 32,8 24,12" fill="#cc0000" stroke="#000000" stroke-width="1"/>
+
+  <!-- Top face (height = 0.3) -->
+  <!-- Corners: (-0.3, -0.2, 0.3), (0.3, -0.2, 0.3), (0.3, 0.2, 0.3), (-0.3, 0.2, 0.3) -->
+  <polygon points="16,8 24,4 32,8 24,12" fill="#ff3333" stroke="#000000" stroke-width="1"/>
+</svg>
