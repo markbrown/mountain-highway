@@ -28,7 +28,7 @@ const GameConfig = {
         length: 0.6,      // Car length in game units
         width: 0.4,       // Car width in game units
         halfLength: 0.3,  // Half of car length (front bumper distance from center)
-        speed: 2.0,       // Movement speed in units per second
+        speed: 4.0,       // Movement speed in units per second
         stoppingMargin: 0.05, // Distance to stop before island edge
         color: '#FF0000', // Red
         outlineColor: '#000', // Black
@@ -37,7 +37,7 @@ const GameConfig = {
 
     // Bridge mechanics
     bridge: {
-        growthRate: 2.0,  // Bridge growth rate in units per second
+        growthRate: 4.0,  // Bridge growth rate in units per second
         slamDuration: 0.2, // Time for bridge to rotate down (seconds)
         color: '#444444',  // Same as road
         baseOffset: 0.1,   // How far bridge starts back onto island edge
