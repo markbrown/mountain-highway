@@ -85,6 +85,15 @@ When extending a course with a new span:
   - Island dirt (right wall): Light brown (#8B4513)
   - Island dirt (left wall): Dark brown (#6B3410)
   - Black outlines where faces meet
+- **Typography**: Google Fonts with consistent font pairing
+  - **Luckiest Guy** (cursive) - All text content:
+    1. Titles: "MOUNTAIN HIGHWAY", "YOU MADE IT!", "YOU CRASHED!"
+    2. Prompts: "Press the mouse button to play"
+    3. Instructions: Start screen instructions (3 lines)
+  - **Ranchers** (cursive) - All numeric/timing displays:
+    4. Countdown: "3", "2", "1" (pre-game countdown)
+    5. In-play timer: "15s" (top right during gameplay)
+    6. Finishing time: "Time: 25.9s" (finish screen)
 
 ## Viewport and Scrolling
 
@@ -888,7 +897,7 @@ const finalPos = startPos + signedDistance;
 - ✅ Vertical scrolling to follow car (implemented with clamping to course bounds)
 - ✅ Start screen
   - Minimalist overlay design with white text on game background
-  - Game title in all caps with Philosopher font from Google Fonts
+  - Game title in all caps using Luckiest Guy font from Google Fonts
   - Brief instructions (3 lines: grow bridge, drop bridge, reach the top)
   - "Press the mouse button to play" prompt
   - Click anywhere on canvas to start

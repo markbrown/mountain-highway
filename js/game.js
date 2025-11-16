@@ -284,7 +284,7 @@ class Game {
         title.classList.remove('countdown');
 
         // Show finish time with one decimal place
-        instructions.innerHTML = `<p>Time: ${this.finishTime.toFixed(1)}s</p>`;
+        instructions.innerHTML = `<p class="finish-time">Time: ${this.finishTime.toFixed(1)}s</p>`;
         instructions.style.display = 'block';
 
         prompt.textContent = 'Press the mouse button to play again';
