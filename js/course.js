@@ -41,7 +41,7 @@ class Span {
  * A bridge represents a gap between two islands that must be crossed
  */
 class Bridge {
-    constructor(spanIndex, startIsland, endIsland, startPos, endPos, direction, junctionType) {
+    constructor(spanIndex, startIsland, endIsland, startPos, endPos, direction, junctionType, sign) {
         this.spanIndex = spanIndex;      // Index of the span that crosses this bridge
         this.startIsland = startIsland;  // Island index where bridge starts
         this.endIsland = endIsland;      // Island index where bridge ends
@@ -49,6 +49,7 @@ class Bridge {
         this.endPos = endPos;            // {row, col} end position (junction)
         this.direction = direction;      // Direction.COLUMN or Direction.ROW
         this.junctionType = junctionType; // JunctionType at end of bridge (or null for course end)
+        this.sign = sign;                // +1 or -1 indicating positive or negative direction
     }
 
     /**
@@ -304,7 +305,8 @@ class Course {
                     currentPos,
                     spanEnd,
                     span.direction,
-                    span.junction
+                    span.junction,
+                    span.sign
                 ));
 
                 // Move to the new island
@@ -372,7 +374,8 @@ class Course {
                     startCol: currentCol,
                     endRow: edgeRow,
                     endCol: edgeCol,
-                    direction: span.direction
+                    direction: span.direction,
+                    sign: span.sign
                 });
 
                 // Segment 2: Bridge animation (grows and slams, but car stays at edge)
@@ -381,6 +384,7 @@ class Course {
                     startRow: edgeRow,
                     startCol: edgeCol,
                     direction: span.direction,
+                    sign: span.sign,
                     bridgeIndex: bridgeIndex
                 });
 
@@ -391,7 +395,8 @@ class Course {
                     startCol: edgeCol,
                     endRow: spanEnd.row,
                     endCol: spanEnd.col,
-                    direction: span.direction
+                    direction: span.direction,
+                    sign: span.sign
                 });
 
                 bridgeIndex++;
@@ -406,7 +411,8 @@ class Course {
                     startCol: currentCol,
                     endRow: spanEnd.row,
                     endCol: spanEnd.col,
-                    direction: span.direction
+                    direction: span.direction,
+                    sign: span.sign
                 });
 
                 currentRow = spanEnd.row;

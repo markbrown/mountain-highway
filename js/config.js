@@ -29,7 +29,7 @@ const GameConfig = {
         width: 0.4,       // Car width in game units
         halfLength: 0.3,  // Half of car length (front bumper distance from center)
         speed: 4.0,       // Movement speed in units per second
-        stoppingMargin: 0.05, // Distance to stop before island edge
+        stoppingMargin: 0.15, // Distance to stop before island edge
         color: '#FF0000', // Red
         outlineColor: '#000', // Black
         outlineWidth: 1

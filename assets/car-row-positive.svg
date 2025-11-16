@@ -1,15 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Car traveling in positive row direction (down-right on screen) -->
-<!-- Shows: left side, top, rear -->
-<!-- Horizontally flipped version of column sprite -->
-<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-  <!-- Same as column sprite but flipped horizontally -->
-  <!-- Rear face (left) -->
-  <polygon points="24,14 24,8 16,12 16,18" fill="#990000" stroke="#000000" stroke-width="1"/>
+<!-- Shows: left side, top, rear (horizontally flipped from column-positive) -->
+<svg width="60" height="60" viewBox="-40 -40 80 80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Back face (col = -0.5) - horizontally flipped -->
+  <!-- Points: back left bottom, back left top, back right top, back right bottom -->
+  <!-- Medium shade - not the darkest since it's vertical -->
+  <polygon points="12.5,18.75 12.5,6.25 37.5,-6.25 37.5,6.25"
+           fill="#cc0000" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
 
-  <!-- Left side face -->
-  <polygon points="16,18 8,14 8,8 16,12" fill="#cc0000" stroke="#000000" stroke-width="1"/>
+  <!-- Left side face (row = 0.25) - horizontally flipped from right side -->
+  <!-- Points: back left bottom, back left top, front left top, front left bottom -->
+  <!-- Darkest shade - this face is now on the left (away from light) -->
+  <polygon points="12.5,18.75 12.5,6.25 -37.5,-18.75 -37.5,-6.25"
+           fill="#990000" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
 
-  <!-- Top face -->
-  <polygon points="24,8 16,4 8,8 16,12" fill="#ff3333" stroke="#000000" stroke-width="1"/>
+  <!-- Bonnet (hood) - horizontally flipped -->
+  <!-- Bonnet top face (h = 0.25) -->
+  <polygon points="-37.5,-18.75 -25,-12.5 0,-25 -12.5,-31.25"
+           fill="#ff6666" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- Trunk (boot) - horizontally flipped -->
+  <!-- Trunk top face (h = 0.25) -->
+  <polygon points="12.5,6.25 0,0 25,-12.5 37.5,-6.25"
+           fill="#ff6666" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- Rear windshield - horizontally flipped -->
+  <polygon points="0,0 -4.15,-14.6 20.85,-27.1 25,-12.5"
+           fill="#87CEEB" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- Roof - top face (h = 0.5) - horizontally flipped -->
+  <polygon points="-4.15,-14.6 -20.85,-22.9 4.15,-35.4 20.85,-27.1"
+           fill="#ff6666" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- Left-side window - horizontally flipped from right-side -->
+  <polygon points="0,0 -4.15,-14.6 -20.85,-22.9 -25,-12.5"
+           fill="#87CEEB" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- Wheels on left side (row = 0.25) - horizontally flipped -->
+  <!-- Ellipse: slightly foreshortened, rx = 6.5, ry = 8.33 -->
+
+  <!-- Back left wheel - horizontally flipped from back right -->
+  <!-- x = -1.25, y = 11.875 -->
+  <ellipse cx="-1.25" cy="11.875" rx="6.5" ry="8.33" fill="#333333" stroke="#000000" stroke-width="1"/>
+
+  <!-- Front left wheel - horizontally flipped from front right -->
+  <!-- x = -26.25, y = -0.625 -->
+  <ellipse cx="-26.25" cy="-0.625" rx="6.5" ry="8.33" fill="#333333" stroke="#000000" stroke-width="1"/>
 </svg>

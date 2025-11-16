@@ -319,10 +319,32 @@ For **turns** (left or right):
 ### Car Movement
 
 **Car Appearance:**
-- Red rectangle with black outline
-- Dimensions: 0.6 units long × 0.4 units wide
-- Oriented based on current direction (column or row)
-- Front bumper extends 0.3 units ahead of car center
+- **Sprite-based rendering**: Four directional SVG sprites (80×80 pixels)
+  - `car-column-positive.svg`: Traveling right (positive column direction)
+  - `car-column-negative.svg`: Traveling left (negative column direction, headlights visible)
+  - `car-row-positive.svg`: Traveling down-right (positive row direction)
+  - `car-row-negative.svg`: Traveling up-left (negative row direction, headlights visible)
+- **Dimensions**: 1.0 units long × 0.5 units wide × 0.25 units tall
+- **Structure** (isometric 3D rendering):
+  - Body: Red car with bonnet, cabin, trunk
+  - Roof: Peaked roof at 0.5 units tall (twice body height)
+  - Windows: Sky blue glass (#87CEEB) - rear windshield and side window
+  - Wheels: Two dark ellipses on visible side (foreshortened for isometric view)
+  - Headlights: Yellow (#FFFF99) - only visible in negative direction sprites
+- **Colors** (lighting-aware shading):
+  - Dark red (#990000): Faces away from light
+  - Medium red (#cc0000): Vertical/neutral faces
+  - Light red (#ff6666): Top surfaces (most lit)
+- **Visual details**:
+  - Rounded corners (`stroke-linejoin="round"`)
+  - Black outlines on all edges
+  - Wheels positioned 0.275 from back, 0.225 from front (adjusted for optical illusion)
+- **Direction-aware rendering**: Sprite selection based on travel direction and sign
+  - Positive direction: Shows rear of car (no headlights)
+  - Negative direction: Shows front of car (headlights visible)
+  - Stored in `currentSegment.sign` (+1 or -1)
+- **Fallback rendering**: Simple colored rectangle if sprites fail to load
+- Front bumper extends 0.5 units ahead of car center (half car length)
 
 **Car Behavior:**
 - Speed: 2 units per second (constant)

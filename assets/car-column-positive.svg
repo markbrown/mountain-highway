@@ -1,40 +1,82 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Car traveling in positive column direction (right on screen) -->
 <!-- Shows: right side, top, rear -->
-<!-- Simple rectangular prism: length=0.6, width=0.4, height=0.3 -->
-<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-  <!--
-  Isometric projection formulas:
-  screenX = (col - row) * blockSize
-  screenY = -(col + row) / 2 * blockSize
+<svg width="60" height="60" viewBox="-40 -40 80 80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Back face (col = -0.5) -->
+  <!-- Points: back right bottom, back right top, back left top, back left bottom -->
+  <polygon points="-12.5,18.75 -12.5,6.25 -37.5,-6.25 -37.5,6.25"
+           fill="#990000" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
 
-  For a unit vector in column direction: screenX increases, screenY decreases
-  For a unit vector in row direction: screenX decreases, screenY decreases
-  For height: screenY decreases (going up)
+  <!-- Right side face (row = -0.25) -->
+  <!-- Points: back right bottom, back right top, front right top, front right bottom -->
+  <polygon points="-12.5,18.75 -12.5,6.25 37.5,-18.75 37.5,-6.25"
+           fill="#cc0000" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
 
-  Car dimensions in grid units:
-  - Length (column direction): 0.6
-  - Width (row direction): 0.4
-  - Height (up): 0.3
+  <!-- Bonnet (hood) - extends from front to 1/4 of car length (behind cabin) -->
+  <!-- Bonnet spans from col = 0.5 to col = 0.25, full width (row = -0.25 to 0.25), height = 0.25 -->
 
-  Let's center the car at origin (0, 0, 0) and use blockSize=40 for clear rendering
-  Car extends from:
-  - col: -0.3 to +0.3 (length)
-  - row: -0.2 to +0.2 (width)
-  - height: 0 to 0.3
-  -->
+  <!-- Bonnet top face (h = 0.25) -->
+  <!-- Corners: front right, back right, back left, front left -->
+  <!-- Front right: row=-0.25, col=0.5, h=0.25 → x=0.5-(-0.25)=0.75, y=-(0.5+(-0.25))/2-0.25=-0.125-0.25=-0.375 → (x=37.5, y=-18.75) -->
+  <!-- Back right: row=-0.25, col=0.25, h=0.25 → x=0.25-(-0.25)=0.5, y=-(0.25+(-0.25))/2-0.25=0-0.25=-0.25 → (x=25, y=-12.5) -->
+  <!-- Back left: row=0.25, col=0.25, h=0.25 → x=0.25-0.25=0, y=-(0.25+0.25)/2-0.25=-0.25-0.25=-0.5 → (x=0, y=-25) -->
+  <!-- Front left: row=0.25, col=0.5, h=0.25 → x=0.5-0.25=0.25, y=-(0.5+0.25)/2-0.25=-0.375-0.25=-0.625 → (x=12.5, y=-31.25) -->
+  <polygon points="37.5,-18.75 25,-12.5 0,-25 12.5,-31.25"
+           fill="#ff6666" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
 
-  <!-- Rear face (visible from behind, facing negative column direction) -->
-  <!-- Corners: (-0.3, -0.2, 0), (-0.3, -0.2, 0.3), (-0.3, 0.2, 0.3), (-0.3, 0.2, 0) -->
-  <!-- Screen coords at col=-0.3: x = -0.3 - row, y = -(-0.3 + row)/2 = (0.3 - row)/2 -->
-  <polygon points="16,14 16,8 24,12 24,18" fill="#990000" stroke="#000000" stroke-width="1"/>
+  <!-- Trunk (boot) - extends from back to 1/4 of car length -->
+  <!-- Trunk spans from col = -0.5 to col = -0.25, full width (row = -0.25 to 0.25), height = 0.25 -->
 
-  <!-- Right side face (row = +0.2) -->
-  <!-- Corners: (-0.3, 0.2, 0), (0.3, 0.2, 0), (0.3, 0.2, 0.3), (-0.3, 0.2, 0.3) -->
-  <!-- Screen x increases with col, y decreases with col -->
-  <polygon points="24,18 32,14 32,8 24,12" fill="#cc0000" stroke="#000000" stroke-width="1"/>
+  <!-- Trunk top face (h = 0.25) -->
+  <!-- Corners: back right, front right, front left, back left -->
+  <!-- Back right: row=-0.25, col=-0.5, h=0.25 → x=-0.5-(-0.25)=-0.25, y=-(-0.5+(-0.25))/2-0.25=0.375-0.25=0.125 → (x=-12.5, y=6.25) -->
+  <!-- Front right: row=-0.25, col=-0.25, h=0.25 → x=-0.25-(-0.25)=0, y=-(-0.25+(-0.25))/2-0.25=0.25-0.25=0 → (x=0, y=0) -->
+  <!-- Front left: row=0.25, col=-0.25, h=0.25 → x=-0.25-0.25=-0.5, y=-(-0.25+0.25)/2-0.25=0-0.25=-0.25 → (x=-25, y=-12.5) -->
+  <!-- Back left: row=0.25, col=-0.5, h=0.25 → x=-0.5-0.25=-0.75, y=-(-0.5+0.25)/2-0.25=0.125-0.25=-0.125 → (x=-37.5, y=-6.25) -->
+  <polygon points="-12.5,6.25 0,0 -25,-12.5 -37.5,-6.25"
+           fill="#ff6666" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
 
-  <!-- Top face (height = 0.3) -->
-  <!-- Corners: (-0.3, -0.2, 0.3), (0.3, -0.2, 0.3), (0.3, 0.2, 0.3), (-0.3, 0.2, 0.3) -->
-  <polygon points="16,8 24,4 32,8 24,12" fill="#ff3333" stroke="#000000" stroke-width="1"/>
+  <!-- Rear windshield - glass reflecting sky -->
+  <!-- Spans from trunk end (col=-0.25) to roof start (col=-0.167), from body top (h=0.25) to roof peak (h=0.5) -->
+  <!-- Right side of windshield (row = -0.25) -->
+  <!-- Bottom right: row=-0.25, col=-0.25, h=0.25 → x=0, y=0 -->
+  <!-- Top right: row=-0.25, col=-0.167, h=0.5 → x=4.15, y=-14.6 -->
+  <!-- Top left: row=0.25, col=-0.167, h=0.5 → x=-20.85, y=-27.1 -->
+  <!-- Bottom left: row=0.25, col=-0.25, h=0.25 → x=-25, y=-12.5 -->
+  <polygon points="0,0 4.15,-14.6 -20.85,-27.1 -25,-12.5"
+           fill="#87CEEB" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- Roof - top face (h = 0.5) -->
+  <!-- Horizontal surface spanning from left to right, col=-0.167 to col=0.167 -->
+  <!-- Back right: row=-0.25, col=-0.167, h=0.5 → x=4.15, y=-14.6 (already calculated) -->
+  <!-- Front right: row=-0.25, col=0.167, h=0.5 → x=20.85, y=-22.9 (already calculated) -->
+  <!-- Front left: row=0.25, col=0.167, h=0.5 → x=-4.15, y=-35.4 (already calculated) -->
+  <!-- Back left: row=0.25, col=-0.167, h=0.5 → x=-20.85, y=-27.1 (already calculated) -->
+  <polygon points="4.15,-14.6 20.85,-22.9 -4.15,-35.4 -20.85,-27.1"
+           fill="#ff6666" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- Right-side window - glass reflecting sky -->
+  <!-- Trapezoid face on right side (row = -0.25) connecting body top to roof edge -->
+  <!-- Back bottom: (0, 0) - quarter from back on body top -->
+  <!-- Back top: (4.15, -14.6) - back right corner of roof -->
+  <!-- Front top: (20.85, -22.9) - front right corner of roof -->
+  <!-- Front bottom: (25, -12.5) - quarter from front on body top -->
+  <polygon points="0,0 4.15,-14.6 20.85,-22.9 25,-12.5"
+           fill="#87CEEB" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- Wheels on right side (row = -0.25) -->
+  <!-- Wheel centers are on bottom edge -->
+  <!-- Back wheel: 0.275 from back, Front wheel: 0.225 from front -->
+  <!-- Wheel radius: 2/3 of side height (0.25) = 0.167 units → 8.33 pixels -->
+  <!-- Ellipse: slightly foreshortened, rx = 6.5, ry = 8.33 -->
+
+  <!-- Back right wheel: row=-0.25, col=-0.225, h=0 (0.275 from back at col=-0.5) -->
+  <!-- x = -0.225 - (-0.25) = 0.025, y = -(-0.225 + (-0.25))/2 = 0.2375 -->
+  <!-- Scaled: x = 1.25, y = 11.875 -->
+  <ellipse cx="1.25" cy="11.875" rx="6.5" ry="8.33" fill="#333333" stroke="#000000" stroke-width="1"/>
+
+  <!-- Front right wheel: row=-0.25, col=0.275, h=0 (0.225 from front at col=0.5) -->
+  <!-- x = 0.275 - (-0.25) = 0.525, y = -(0.275 + (-0.25))/2 = -0.0125 -->
+  <!-- Scaled: x = 26.25, y = -0.625 -->
+  <ellipse cx="26.25" cy="-0.625" rx="6.5" ry="8.33" fill="#333333" stroke="#000000" stroke-width="1"/>
 </svg>

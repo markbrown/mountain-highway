@@ -62,8 +62,8 @@ class Level {
 
             if (bridge.direction === Direction.COLUMN) {
                 // Bridge extends in column direction (horizontal on screen)
-                // Check if moving in positive or negative column direction
-                const isPositive = bridge.endPos.col >= bridge.startPos.col;
+                // Use explicit sign from bridge (stored from span)
+                const isPositive = bridge.sign > 0;
                 return {
                     baseRow: bridge.startPos.row,
                     edgeCol: isPositive ? (startCol + startWidth) : startCol,
@@ -72,8 +72,8 @@ class Level {
                 };
             } else {
                 // Bridge extends in row direction (vertical on screen)
-                // Check if moving in positive or negative row direction
-                const isPositive = bridge.endPos.row >= bridge.startPos.row;
+                // Use explicit sign from bridge (stored from span)
+                const isPositive = bridge.sign > 0;
                 return {
                     edgeRow: isPositive ? (startRow + startHeight) : startRow,
                     baseCol: bridge.startPos.col,

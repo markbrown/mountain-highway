@@ -30,6 +30,7 @@ class RenderContext {
             row: options.carRow,
             col: options.carCol,
             direction: options.carDirection,
+            sign: options.carSign || 1,
             shouldRender: options.shouldRenderCar,
             isFalling: options.isFalling,
             zOffset: options.carZOffset || 0,
@@ -820,12 +821,17 @@ class Game {
         // Don't render car if it has fallen too far off screen
         const shouldRenderCar = !(isFalling && this.carZOffset > 100);
 
+        // Determine car travel direction sign (positive or negative)
+        // Use the sign stored in the current segment (reliable and works even when car is stopped)
+        let carSign = (this.currentSegment && this.currentSegment.sign) ? this.currentSegment.sign : 1;
+
         // Create rendering context with all game state
         const context = new RenderContext({
             gameState: this.gameState,
             carRow: this.carRow,
             carCol: this.carCol,
             carDirection: this.carDirection,
+            carSign: carSign,
             isFalling: isFalling,
             shouldRenderCar: shouldRenderCar,
             carZOffset: this.carZOffset,
