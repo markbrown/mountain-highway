@@ -19,7 +19,7 @@ const GameConfig = {
     road: {
         width: 1.0,      // Road width in game units
         halfWidth: 0.5,  // Half of road width (for rendering)
-        color: '#444444', // Dark gray
+        color: '#AAAAAA', // Medium-light gray
         junctionExtension: 0.5 // Extension past junction when leading to another junction
     },
 
@@ -39,7 +39,7 @@ const GameConfig = {
     bridge: {
         growthRate: 4.0,  // Bridge growth rate in units per second
         slamDuration: 0.2, // Time for bridge to rotate down (seconds)
-        color: '#444444',  // Same as road
+        color: '#AAAAAA',  // Medium-light gray (same as road)
         baseOffset: 0.1,   // How far bridge starts back onto island edge
         leeway: 0.3        // Forgiveness distance for slightly short bridges (units)
     },
@@ -53,7 +53,7 @@ const GameConfig = {
     // Island rendering
     island: {
         wallHeight: 2000, // Wall extension downward (pixels)
-        grassColor: '#4CAF50',      // Green (top surface)
+        grassColor: '#2E7D32',      // Darker green (top surface)
         dirtLightColor: '#8B4513',  // Light brown (right wall)
         dirtDarkColor: '#6B3410',   // Dark brown (left wall)
         outlineColor: '#000',       // Black
