@@ -250,7 +250,8 @@ class Renderer {
             const [row, col, width, height] = context.islands[islandIndex];
 
             // For negative direction bridges, render car BEFORE target island
-            if (context.car.isFalling &&
+            if (context.car.shouldRender &&
+                context.car.isFalling &&
                 islandIndex === context.fallingCarRender.targetIslandIndex &&
                 !context.fallingCarRender.bridgeIsPositive) {
                 this.renderFallingCar(context.car, blockSize);
@@ -267,7 +268,8 @@ class Renderer {
             this.drawIslandOutlines(corners);
 
             // For positive direction bridges, render car AFTER target island
-            if (context.car.isFalling &&
+            if (context.car.shouldRender &&
+                context.car.isFalling &&
                 islandIndex === context.fallingCarRender.targetIslandIndex &&
                 context.fallingCarRender.bridgeIsPositive) {
                 this.renderFallingCar(context.car, blockSize);

@@ -31,8 +31,7 @@ class RenderContext {
             col: options.carCol,
             direction: options.carDirection,
             shouldRender: options.shouldRenderCar,
-            // Falling state
-            isFalling: options.gameState === GameState.FALLING,
+            isFalling: options.isFalling,
             zOffset: options.carZOffset || 0,
             tumbleRotation: options.carTumbleRotation || 0
         };
@@ -441,7 +440,12 @@ class Game {
         this.lastTime = currentTime;
 
         if (this.gameState === GameState.GAME_OVER) {
-            // Game over (crashed) - keep rendering but don't update
+            // Game over (crashed) - keep rendering and continue falling animation
+            // Continue falling physics so car disappears off screen
+            this.carFallVelocity += GameConfig.physics.gravity * deltaTime;
+            this.carZOffset += this.carFallVelocity * deltaTime;
+            this.carTumbleRotation += GameConfig.physics.tumbleRate * deltaTime;
+
             this.updateViewport();
             this.render();
             requestAnimationFrame((time) => this.animate(time));
@@ -810,9 +814,11 @@ class Game {
      * Render the game scene
      */
     render() {
-        // Determine if car should be rendered
-        // Don't render if fallen too far off screen
-        const shouldRenderCar = !(this.gameState === GameState.FALLING && this.carZOffset > 100);
+        // Determine car rendering state
+        // Car is falling if in FALLING or GAME_OVER state (game over continues falling animation)
+        const isFalling = (this.gameState === GameState.FALLING || this.gameState === GameState.GAME_OVER);
+        // Don't render car if it has fallen too far off screen
+        const shouldRenderCar = !(isFalling && this.carZOffset > 100);
 
         // Create rendering context with all game state
         const context = new RenderContext({
@@ -820,6 +826,7 @@ class Game {
             carRow: this.carRow,
             carCol: this.carCol,
             carDirection: this.carDirection,
+            isFalling: isFalling,
             shouldRenderCar: shouldRenderCar,
             carZOffset: this.carZOffset,
             carTumbleRotation: this.carTumbleRotation,
