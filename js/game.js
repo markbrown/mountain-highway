@@ -269,6 +269,8 @@ class Game {
         this.lastTime = currentTime;
 
         if (this.gameState === GameState.DONE) {
+            // Update viewport even when done, then render
+            this.updateViewport();
             this.render();
             return;
         }
@@ -410,6 +412,9 @@ class Game {
             // Start next segment
             this.startNextSegment();
         }
+
+        // Update viewport based on new car position (after all state updates)
+        this.updateViewport();
 
         // Continue animation
         this.render();
@@ -605,9 +610,6 @@ class Game {
     }
 
     render() {
-        // Update viewport to follow car
-        this.updateViewport();
-
         this.renderer.clear();
 
         const blockSize = this.viewport.blockSize;
@@ -665,7 +667,7 @@ class Game {
         }
 
         // Draw debug bridge zones (optional - shows min/max safe bridge lengths)
-        if (this.showBridgeZones) {
+        if (GameConfig.debug.showBridgeZones) {
             this.debug.drawBridgeZones(this.course, this.islands, blockSize);
         }
 
@@ -773,7 +775,7 @@ class Game {
         });
 
         // Draw debug overlays (on top of everything)
-        if (this.showIslandNumbers) {
+        if (GameConfig.debug.showIslandNumbers) {
             this.islands.forEach(([row, col, width, height], islandNum) => {
                 this.debug.drawIslandNumber(row, col, width, height, islandNum, blockSize);
             });

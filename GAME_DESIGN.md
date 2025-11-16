@@ -699,32 +699,38 @@ The validation test suite (`test-validation.html`) provides comprehensive debugg
 
 ### Planned Improvements
 
-**Refactoring Strategy:**
-
-After completing Phases 1-3 of code cleanup (config centralization, removing redundant storage), we've decided to **postpone Phase 4** (renderer refactoring) until after implementing core gameplay mechanics.
-
-**Rationale:**
-- Phase 4 would refactor bridge rendering logic from Game into Renderer
-- But the next feature (car falling off short bridges) will require:
-  - New game states (FALLING, CRASHED)
-  - Physics simulation (gravity, rotation during fall)
-  - Collision detection at bridge ends
-  - Complex car rendering at arbitrary angles
-- These gameplay mechanics may reveal better refactoring opportunities than we can anticipate now
-- Implementing falling first will inform what the right architectural separation should be
-- Risk of refactoring in the wrong direction if done prematurely
+**Refactoring Progress:**
 
 **Completed Refactoring (Phases 1-3):**
 - ✅ Phase 1: Quick wins - GameState constants, config centralization
 - ✅ Phase 2: Removed redundant canvas size storage
 - ✅ Phase 3: Removed redundant car/bridge config storage
-- ⏸️ Phase 4: Renderer refactoring - **deferred until after falling mechanic**
 
-**Next Steps:**
-1. Implement car falling mechanic (bridge too short/long)
-2. Implement physics and tumbling animation
-3. Reassess refactoring needs based on new complexity
-4. Determine if Phase 4 is still relevant or if different refactoring is needed
+**Phase 4: Renderer Refactoring** (In Progress)
+
+After implementing the falling mechanic, we identified that rendering logic has accumulated in game.js. Phase 4 breaks down the refactoring into sub-phases:
+
+**Completed:**
+- ✅ Phase 4D: Fixed viewport update - moved from render() to animate() for clean update/render separation
+- ✅ Phase 4E: Consolidated debug flags - using GameConfig.debug consistently throughout
+
+**Planned:**
+- ⏳ Phase 4A: Extract rendering coordination (High Priority)
+  - Create RenderContext class to encapsulate rendering state
+  - Move rendering decisions from Game into Renderer
+  - Add Renderer.renderScene() to handle all rendering logic
+  - Reduce Game.render() from 176 lines to ~10 lines
+
+- ⏳ Phase 4B: Create bridge renderer (Medium Priority)
+  - Consolidate three-pass bridge rendering logic
+  - Encapsulate vertical/rotating/horizontal state handling
+
+- ⏳ Phase 4C: Create car renderer (Low Priority)
+  - Unify normal and falling car rendering
+  - Eliminate special-case renderFallingCar() method
+
+**Rationale for Phase 4:**
+The falling mechanic revealed that rendering logic is now split between Game and Renderer, with Game making rendering decisions (ordering, transforms, which primitives to call). This violates separation of concerns and makes the code harder to test and maintain.
 
 **Medium Priority:**
 1. **Debug mode enhancements**: Add overlays for junction markers, car target position, current game state, road segment boundaries.
