@@ -3,6 +3,7 @@
 // Game state constants
 const GameState = {
     START_SCREEN: 'start_screen',
+    COUNTDOWN: 'countdown',
     DRIVING: 'driving',
     TURNING: 'turning',
     BRIDGE_GROWING: 'bridge_growing',
@@ -99,6 +100,10 @@ class Game {
         this.gameState = GameState.START_SCREEN;
         this.stateProgress = 0;
         this.lastTime = 0;
+
+        // Countdown state
+        this.countdownValue = 3;      // Current countdown number (3, 2, 1)
+        this.countdownTimer = 0;      // Time elapsed in current countdown number
 
         // Falling state
         this.fallPoint = null;        // Position where car runs out of bridge
@@ -211,18 +216,46 @@ class Game {
      * Start the game (called when player clicks Start button)
      */
     startGame() {
-        // Hide start screen
+        // Transition to countdown state
+        this.gameState = GameState.COUNTDOWN;
+        this.countdownValue = 3;
+        this.countdownTimer = 0;
+
+        // Update overlay to show countdown
+        this.updateCountdownDisplay();
+
+        // Start animation loop
+        requestAnimationFrame((time) => this.animate(time));
+    }
+
+    /**
+     * Update the overlay to show countdown number
+     */
+    updateCountdownDisplay() {
+        const startScreen = document.getElementById('startScreen');
+        if (!startScreen) return;
+
+        const title = startScreen.querySelector('.game-title');
+        const instructions = startScreen.querySelector('.instructions');
+        const prompt = startScreen.querySelector('.start-prompt');
+
+        if (this.gameState === GameState.COUNTDOWN) {
+            // Show countdown number
+            title.textContent = this.countdownValue.toString();
+            title.classList.add('countdown');
+            instructions.style.display = 'none';
+            prompt.style.display = 'none';
+        }
+    }
+
+    /**
+     * Hide the start screen overlay
+     */
+    hideStartScreen() {
         const startScreen = document.getElementById('startScreen');
         if (startScreen) {
             startScreen.style.display = 'none';
         }
-
-        // Initialize game state
-        this.gameState = GameState.DRIVING;
-        this.startNextSegment();
-
-        // Start animation loop
-        requestAnimationFrame((time) => this.animate(time));
     }
 
     /**
@@ -320,6 +353,32 @@ class Game {
             // Update viewport even when done, then render
             this.updateViewport();
             this.render();
+            return;
+        }
+
+        // Handle countdown state
+        if (this.gameState === GameState.COUNTDOWN) {
+            this.countdownTimer += deltaTime;
+
+            // Each number shows for 1 second
+            if (this.countdownTimer >= 1.0) {
+                this.countdownValue--;
+                this.countdownTimer = 0;
+
+                if (this.countdownValue <= 0) {
+                    // Countdown finished - start the game!
+                    this.hideStartScreen();
+                    this.gameState = GameState.DRIVING;
+                    this.startNextSegment();
+                } else {
+                    // Update display to show next number
+                    this.updateCountdownDisplay();
+                }
+            }
+
+            // Continue rendering during countdown
+            this.render();
+            requestAnimationFrame((time) => this.animate(time));
             return;
         }
 

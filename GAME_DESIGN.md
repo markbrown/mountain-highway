@@ -893,6 +893,12 @@ const finalPos = startPos + signedDistance;
   - Click anywhere on canvas to start
   - Sprite preloading ensures car sprite displays correctly on first render
   - START_SCREEN game state prevents animation until player starts
+- ✅ Countdown timer
+  - 3-second numeric countdown (3... 2... 1...) after player clicks start
+  - Each number displays for 1 second
+  - Large centered text (8em) reusing start screen overlay
+  - COUNTDOWN game state between START_SCREEN and DRIVING
+  - Gives player time to prepare before car starts moving
 - ⏳ Game over and win screens with restart functionality
 - ⏳ Sound effects
 - ⏳ Visual polish (power meter, distance indicators, score display)
