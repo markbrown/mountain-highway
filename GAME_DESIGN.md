@@ -902,6 +902,7 @@ const finalPos = startPos + signedDistance;
   - Gives player time to prepare before car starts moving
 - ✅ Finish screen
   - Shows "YOU MADE IT!" when player completes the course
+  - Displays final time with one decimal place (e.g., "Time: 25.9s")
   - "Press the mouse button to play again" prompt
   - Click to restart (goes through countdown again)
   - FINISH game state maintains rendering while showing overlay
@@ -918,5 +919,13 @@ const finalPos = startPos + signedDistance;
   - restartGame() resets all game state (car position, segments, bridges, physics)
   - Restart transitions through countdown before gameplay resumes
   - Complete game loop: start → play → finish/crash → restart
+- ✅ Timer system
+  - Displays elapsed time in top right corner during gameplay
+  - Shows whole seconds during play (e.g., "15s")
+  - Captures final time when player completes course
+  - Displays finish time with one decimal place on finish screen (e.g., "Time: 25.9s")
+  - Timer stops during falling and is not shown on game over screen
+  - Resets on restart
+  - Enables speedrun-style gameplay and replay value
 - ⏳ Sound effects
-- ⏳ Visual polish (power meter, distance indicators, score display)
+- ⏳ Visual polish (power meter, distance indicators)

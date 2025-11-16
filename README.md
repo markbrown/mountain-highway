@@ -9,10 +9,12 @@ Mountain Highway is a browser-based game built with vanilla JavaScript and HTML5
 ## How to Play
 
 1. **Open the game**: Open `index.html` in a web browser, or serve with a local web server (e.g., `python3 -m http.server`)
-2. **Build bridges**: When your car stops at an edge, click and hold to grow a bridge
-3. **Judge the distance**: The bridge grows vertically while you hold - watch carefully!
-4. **Release to drop**: Let go to slam the bridge down
-5. **Drive safely**: If the bridge is the right length, you'll continue. Too short or too long? You'll fall!
+2. **Start**: Click to begin the game - a countdown (3-2-1) prepares you for action
+3. **Build bridges**: When your car stops at an edge, click and hold to grow a bridge
+4. **Judge the distance**: The bridge grows vertically while you hold - watch carefully!
+5. **Release to drop**: Let go to slam the bridge down
+6. **Drive safely**: If the bridge is the right length, you'll continue. Too short or too long? You'll fall!
+7. **Race the clock**: Complete the course as fast as possible - your time is displayed in the top right corner
 
 ### Controls
 
@@ -55,6 +57,8 @@ The game includes a forgiveness mechanic for bridges that are slightly short (wi
 - ✅ Physics-based falling with tumbling animation
 - ✅ Forgiveness mechanic for close attempts
 - ✅ Touch device support
+- ✅ Complete game flow with start screen, countdown, and finish/game over screens
+- ✅ Timer system for speedrun challenges
 
 ## Project Structure
 

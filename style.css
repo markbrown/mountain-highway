@@ -74,3 +74,16 @@ body {
     margin-bottom: 80px;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
 }
+
+/* Timer display - top right corner during gameplay */
+.timer-display {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 2em;
+    color: white;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+}

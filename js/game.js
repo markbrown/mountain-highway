@@ -116,6 +116,10 @@ class Game {
         this.bridgeIsPositive = true; // Direction sign of bridge when falling
         this.fallTimer = 0;           // Time elapsed since car started falling
 
+        // Timer state
+        this.gameTimer = 0;           // Total time elapsed during gameplay (seconds)
+        this.finishTime = 0;          // Time when player finished (for display)
+
         // Wait for renderer to load sprites, then initialize
         this.init();
     }
@@ -278,7 +282,11 @@ class Game {
         // Update text for finish screen
         title.textContent = 'YOU MADE IT!';
         title.classList.remove('countdown');
-        instructions.style.display = 'none';
+
+        // Show finish time with one decimal place
+        instructions.innerHTML = `<p>Time: ${this.finishTime.toFixed(1)}s</p>`;
+        instructions.style.display = 'block';
+
         prompt.textContent = 'Press the mouse button to play again';
         prompt.style.display = 'block';
     }
@@ -333,6 +341,10 @@ class Game {
         this.carTumbleRotation = 0;
         this.fallPoint = null;
         this.fallTimer = 0;
+
+        // Reset timer state
+        this.gameTimer = 0;
+        this.finishTime = 0;
 
         // Update overlay to show countdown
         this.updateCountdownDisplay();
@@ -456,6 +468,7 @@ class Game {
                 if (this.countdownValue <= 0) {
                     // Countdown finished - start the game!
                     this.hideStartScreen();
+                    this.gameTimer = 0;  // Reset timer when gameplay starts
                     this.gameState = GameState.DRIVING;
                     this.startNextSegment();
                 } else {
@@ -468,6 +481,13 @@ class Game {
             this.render();
             requestAnimationFrame((time) => this.animate(time));
             return;
+        }
+
+        // Update game timer during active gameplay
+        if (this.gameState !== GameState.FINISH &&
+            this.gameState !== GameState.GAME_OVER &&
+            this.gameState !== GameState.FALLING) {
+            this.gameTimer += deltaTime;
         }
 
         // State machine for coordinating car movement and bridge animations
@@ -628,6 +648,7 @@ class Game {
     startNextSegment() {
         // Check if we've completed all segments
         if (this.currentSegmentIndex >= this.pathSegments.length) {
+            this.finishTime = this.gameTimer;  // Capture final time
             this.gameState = GameState.FINISH;
             this.showFinishScreen();
             return;
@@ -817,6 +838,31 @@ class Game {
 
         // Delegate all rendering to the renderer
         this.renderer.renderScene(context, this.viewport, this.debug);
+
+        // Update timer display
+        this.updateTimerDisplay();
+    }
+
+    /**
+     * Update the timer display element
+     */
+    updateTimerDisplay() {
+        const timerDisplay = document.getElementById('timerDisplay');
+        if (!timerDisplay) return;
+
+        // Show timer only during active gameplay
+        if (this.gameState === GameState.DRIVING ||
+            this.gameState === GameState.TURNING ||
+            this.gameState === GameState.BRIDGE_GROWING ||
+            this.gameState === GameState.BRIDGE_SLAMMING ||
+            this.gameState === GameState.DOOMED ||
+            this.gameState === GameState.SEGMENT_DONE) {
+            timerDisplay.style.display = 'block';
+            // Display without decimal places during gameplay
+            timerDisplay.textContent = Math.floor(this.gameTimer) + 's';
+        } else {
+            timerDisplay.style.display = 'none';
+        }
     }
 }
 
