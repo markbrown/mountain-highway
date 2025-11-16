@@ -890,6 +890,7 @@ const finalPos = startPos + signedDistance;
   - Minimalist overlay design with white text on game background
   - Game title in all caps with Philosopher font from Google Fonts
   - Brief instructions (3 lines: grow bridge, drop bridge, reach the top)
+  - "Press the mouse button to play" prompt
   - Click anywhere on canvas to start
   - Sprite preloading ensures car sprite displays correctly on first render
   - START_SCREEN game state prevents animation until player starts
@@ -899,6 +900,23 @@ const finalPos = startPos + signedDistance;
   - Large centered text (8em) reusing start screen overlay
   - COUNTDOWN game state between START_SCREEN and DRIVING
   - Gives player time to prepare before car starts moving
-- ⏳ Game over and win screens with restart functionality
+- ✅ Finish screen
+  - Shows "YOU MADE IT!" when player completes the course
+  - "Press the mouse button to play again" prompt
+  - Click to restart (goes through countdown again)
+  - FINISH game state maintains rendering while showing overlay
+  - Reuses start screen overlay with updated text
+- ✅ Game over screen
+  - Shows "YOU CRASHED!" when player falls off
+  - "Press the mouse button to play again" prompt
+  - Appears after 1 second of falling (not waiting for car to leave screen)
+  - Click to restart (goes through countdown again)
+  - GAME_OVER game state maintains rendering while showing overlay
+  - Car continues falling animation if still visible
+- ✅ Restart functionality
+  - Both finish and game over screens support restart
+  - restartGame() resets all game state (car position, segments, bridges, physics)
+  - Restart transitions through countdown before gameplay resumes
+  - Complete game loop: start → play → finish/crash → restart
 - ⏳ Sound effects
 - ⏳ Visual polish (power meter, distance indicators, score display)

@@ -11,7 +11,9 @@ const GameState = {
     DOOMED: 'doomed',
     FALLING: 'falling',
     SEGMENT_DONE: 'segment_done',
-    DONE: 'done'
+    DONE: 'done',
+    FINISH: 'finish',
+    GAME_OVER: 'game_over'
 };
 
 /**
@@ -112,6 +114,7 @@ class Game {
         this.carTumbleRotation = 0;   // Rotation angle while tumbling
         this.targetIslandIndex = -1;  // Island index for rendering order
         this.bridgeIsPositive = true; // Direction sign of bridge when falling
+        this.fallTimer = 0;           // Time elapsed since car started falling
 
         // Wait for renderer to load sprites, then initialize
         this.init();
@@ -259,22 +262,98 @@ class Game {
     }
 
     /**
-     * Set up start screen - click anywhere to start
+     * Show the finish screen when player completes the course
+     */
+    showFinishScreen() {
+        const startScreen = document.getElementById('startScreen');
+        if (!startScreen) return;
+
+        const title = startScreen.querySelector('.game-title');
+        const instructions = startScreen.querySelector('.instructions');
+        const prompt = startScreen.querySelector('.start-prompt');
+
+        // Show finish screen overlay
+        startScreen.style.display = 'flex';
+
+        // Update text for finish screen
+        title.textContent = 'YOU MADE IT!';
+        title.classList.remove('countdown');
+        instructions.style.display = 'none';
+        prompt.textContent = 'Press the mouse button to play again';
+        prompt.style.display = 'block';
+    }
+
+    /**
+     * Show the game over screen when player crashes
+     */
+    showGameOverScreen() {
+        const startScreen = document.getElementById('startScreen');
+        if (!startScreen) return;
+
+        const title = startScreen.querySelector('.game-title');
+        const instructions = startScreen.querySelector('.instructions');
+        const prompt = startScreen.querySelector('.start-prompt');
+
+        // Show game over screen overlay
+        startScreen.style.display = 'flex';
+
+        // Update text for game over screen
+        title.textContent = 'YOU CRASHED!';
+        title.classList.remove('countdown');
+        instructions.style.display = 'none';
+        prompt.textContent = 'Press the mouse button to play again';
+        prompt.style.display = 'block';
+    }
+
+    /**
+     * Restart the game
+     */
+    restartGame() {
+        // Reset game state
+        this.gameState = GameState.COUNTDOWN;
+        this.countdownValue = 3;
+        this.countdownTimer = 0;
+
+        // Reset car position
+        this.carRow = this.course.startRow;
+        this.carCol = this.course.startCol;
+        this.carDirection = this.pathSegments[0].direction;
+
+        // Reset segment tracking
+        this.currentSegmentIndex = 0;
+        this.currentSegment = null;
+
+        // Reset bridge state
+        this.bridgeLength = 0;
+        this.bridgeRotation = 0;
+
+        // Reset falling state
+        this.carZOffset = 0;
+        this.carFallVelocity = 0;
+        this.carTumbleRotation = 0;
+        this.fallPoint = null;
+        this.fallTimer = 0;
+
+        // Update overlay to show countdown
+        this.updateCountdownDisplay();
+    }
+
+    /**
+     * Set up start screen - click anywhere to start or restart
      */
     setupStartScreen() {
         const startHandler = (e) => {
             if (this.gameState === GameState.START_SCREEN) {
                 this.startGame();
-                // Remove the handler after starting
-                this.canvas.removeEventListener('mousedown', startHandler);
-                this.canvas.removeEventListener('touchstart', startHandler);
+            } else if (this.gameState === GameState.FINISH || this.gameState === GameState.GAME_OVER) {
+                this.restartGame();
             }
         };
 
-        // Mouse click to start
+        // Mouse click to start/restart
         this.canvas.addEventListener('mousedown', startHandler);
 
-        // Touch to start
+        // Touch to start/restart
         this.canvas.addEventListener('touchstart', startHandler);
     }
 
@@ -349,10 +428,19 @@ class Game {
         const deltaTime = (currentTime - this.lastTime) / 1000; // Convert to seconds
         this.lastTime = currentTime;
 
-        if (this.gameState === GameState.DONE) {
-            // Update viewport even when done, then render
+        if (this.gameState === GameState.GAME_OVER) {
+            // Game over (crashed) - keep rendering but don't update
             this.updateViewport();
             this.render();
+            requestAnimationFrame((time) => this.animate(time));
+            return;
+        }
+
+        if (this.gameState === GameState.FINISH) {
+            // Player finished successfully - keep rendering but don't update
+            this.updateViewport();
+            this.render();
+            requestAnimationFrame((time) => this.animate(time));
             return;
         }
 
@@ -432,6 +520,7 @@ class Game {
                         this.carCol = this.fallPoint.col;
                         this.gameState = GameState.FALLING;
                         this.carFallVelocity = 0;
+                        this.fallTimer = 0;
                     }
                 } else {
                     // Moving backward (negative direction)
@@ -441,6 +530,7 @@ class Game {
                         this.carCol = this.fallPoint.col;
                         this.gameState = GameState.FALLING;
                         this.carFallVelocity = 0;
+                        this.fallTimer = 0;
                     }
                 }
             } else {
@@ -453,6 +543,7 @@ class Game {
                         this.carCol = this.fallPoint.col;
                         this.gameState = GameState.FALLING;
                         this.carFallVelocity = 0;
+                        this.fallTimer = 0;
                     }
                 } else {
                     // Moving backward (negative direction)
@@ -462,6 +553,7 @@ class Game {
                         this.carCol = this.fallPoint.col;
                         this.gameState = GameState.FALLING;
                         this.carFallVelocity = 0;
+                        this.fallTimer = 0;
                     }
                 }
             }
@@ -508,12 +600,14 @@ class Game {
             this.carZOffset += this.carFallVelocity * deltaTime;
             this.carTumbleRotation += GameConfig.physics.tumbleRate * deltaTime;
 
-            // Check if car has fallen out of view (arbitrary threshold)
-            if (this.carZOffset > 100) {
-                console.log('Car has fallen out of view - Game Over');
-                // For now, just stop the animation
-                // TODO: Add proper game over state
-                this.gameState = GameState.DONE;
+            // Track how long car has been falling
+            this.fallTimer += deltaTime;
+
+            // Show game over screen after 1 second of falling
+            if (this.fallTimer >= 1.0) {
+                console.log('Game Over - Car crashed');
+                this.gameState = GameState.GAME_OVER;
+                this.showGameOverScreen();
             }
         } else if (this.gameState === GameState.SEGMENT_DONE) {
             // Start next segment
@@ -534,7 +628,8 @@ class Game {
     startNextSegment() {
         // Check if we've completed all segments
         if (this.currentSegmentIndex >= this.pathSegments.length) {
-            this.gameState = GameState.DONE;
+            this.gameState = GameState.FINISH;
+            this.showFinishScreen();
             return;
         }
 
