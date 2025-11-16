@@ -155,11 +155,282 @@ class Renderer {
             this.canvas.width = GameConfig.canvas.width;
             this.canvas.height = GameConfig.canvas.height;
         }
+
+        // Car sprites (owned by renderer)
+        this.carSprites = {
+            rowPositive: null,
+            rowNegative: null,
+            columnPositive: null,
+            columnNegative: null
+        };
+        this.spritesLoaded = false;
+
+        // Load sprites
+        this.loadSprites();
+    }
+
+    /**
+     * Load car sprite images
+     */
+    loadSprites() {
+        const spritesToLoad = 2; // row and column sprites
+        let loadedCount = 0;
+
+        const onSpriteLoad = () => {
+            loadedCount++;
+            if (loadedCount === spritesToLoad) {
+                this.spritesLoaded = true;
+            }
+        };
+
+        // Load row direction sprite (same for positive/negative)
+        this.carSprites.rowPositive = new Image();
+        this.carSprites.rowPositive.onload = onSpriteLoad;
+        this.carSprites.rowPositive.src = 'assets/car-row-positive.svg';
+        // Rectangular prism looks the same from front/back
+        this.carSprites.rowNegative = this.carSprites.rowPositive;
+
+        // Load column direction sprite (same for positive/negative)
+        this.carSprites.columnPositive = new Image();
+        this.carSprites.columnPositive.onload = onSpriteLoad;
+        this.carSprites.columnPositive.src = 'assets/car-column-positive.svg';
+        // Rectangular prism looks the same from front/back
+        this.carSprites.columnNegative = this.carSprites.columnPositive;
     }
 
     clear() {
         this.ctx.fillStyle = GameConfig.canvas.backgroundColor;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    /**
+     * Render the entire game scene
+     * @param {RenderContext} context - Bundled game state for rendering
+     * @param {Viewport} viewport - Current viewport
+     * @param {DebugRenderer} debug - Debug renderer (optional)
+     */
+    renderScene(context, viewport, debug = null) {
+        this.clear();
+
+        const blockSize = viewport.blockSize;
+
+        // Apply viewport transform
+        this.ctx.save();
+        const offset = viewport.getOffset(context.car.row, context.car.col);
+        this.ctx.translate(offset.x, offset.y);
+
+        // Draw debug grid (optional - for development)
+        if (GameConfig.debug.showGrid && debug) {
+            debug.drawGrid(viewport.minRow, viewport.maxRow,
+                          viewport.minCol, viewport.maxCol, blockSize);
+        }
+
+        // Draw islands from top to bottom (highest row first)
+        // For each island: base colors → road → black lines
+        // This ensures nearer islands properly overlap more distant ones
+
+        const wallHeight = GameConfig.island.wallHeight;
+
+        // Sort islands by distance from camera (row + col, descending) for proper back-to-front rendering
+        // Higher sum = farther from camera (rendered first)
+        // Lower sum = closer to camera (rendered last, overlays others)
+        const sortedIndices = context.islands
+            .map((island, idx) => ({island, idx}))
+            .sort((a, b) => (b.island[0] + b.island[1]) - (a.island[0] + a.island[1]))
+            .map(item => item.idx);
+
+        // Render each island completely (colors → road → lines) from farthest to nearest
+        // For falling car: render before or after target island depending on bridge direction
+        for (let i = 0; i < sortedIndices.length; i++) {
+            const islandIndex = sortedIndices[i];
+            const [row, col, width, height] = context.islands[islandIndex];
+
+            // For negative direction bridges, render car BEFORE target island
+            if (context.car.isFalling &&
+                islandIndex === context.fallingCarRender.targetIslandIndex &&
+                !context.fallingCarRender.bridgeIsPositive) {
+                this.renderFallingCar(context.car, blockSize);
+            }
+
+            // Step 1: Draw island base colors (green and brown)
+            const corners = this.drawIslandColors(row, col, width, height, wallHeight, blockSize);
+
+            // Step 2: Draw road on this island (grey) using Course data
+            const roadSegments = context.course.getRoadSegmentsForIsland(islandIndex, context.islands);
+            this.drawIslandRoadFromSpans(row, col, width, height, roadSegments, blockSize);
+
+            // Step 3: Draw island outlines (black lines)
+            this.drawIslandOutlines(corners);
+
+            // For positive direction bridges, render car AFTER target island
+            if (context.car.isFalling &&
+                islandIndex === context.fallingCarRender.targetIslandIndex &&
+                context.fallingCarRender.bridgeIsPositive) {
+                this.renderFallingCar(context.car, blockSize);
+            }
+        }
+
+        // Draw debug bridge zones (optional - shows min/max safe bridge lengths)
+        if (GameConfig.debug.showBridgeZones && debug) {
+            debug.drawBridgeZones(context.course, context.islands, blockSize);
+        }
+
+        // Render bridges in three passes for correct depth ordering
+        this.renderBridges(context, blockSize);
+
+        // Draw car at current position (unless it's falling - already rendered in special position)
+        if (context.car.shouldRender && !context.car.isFalling) {
+            this.drawCar(context.car.row, context.car.col, context.car.direction, blockSize);
+        }
+
+        // Draw debug overlays (on top of everything)
+        if (GameConfig.debug.showIslandNumbers && debug) {
+            context.islands.forEach(([row, col, width, height], islandNum) => {
+                debug.drawIslandNumber(row, col, width, height, islandNum, blockSize);
+            });
+        }
+
+        this.ctx.restore();
+    }
+
+    /**
+     * Render a falling car with z-offset and tumble rotation
+     * @param {Object} carState - Car state from RenderContext
+     * @param {number} blockSize - Block size in pixels
+     */
+    renderFallingCar(carState, blockSize) {
+        // Render car with z-offset (falling into the abyss)
+        this.ctx.save();
+
+        // Apply z-offset as vertical translation in screen space
+        this.ctx.translate(0, carState.zOffset * blockSize);
+
+        // Draw car with tumble rotation
+        const screenPos = this.gameToScreen(carState.row, carState.col);
+        const screenX = screenPos.x * blockSize;
+        const screenY = screenPos.y * blockSize;
+
+        this.ctx.save();
+        this.ctx.translate(screenX, screenY);
+        this.ctx.rotate(carState.tumbleRotation);
+        this.ctx.translate(-screenX, -screenY);
+
+        this.drawCar(carState.row, carState.col, carState.direction, blockSize);
+
+        this.ctx.restore();
+        this.ctx.restore();
+    }
+
+    /**
+     * Render all bridges with proper depth ordering
+     * Three passes: completed bridges (under car), positive animating (behind car), negative animating (in front)
+     * @param {RenderContext} context - Rendering context
+     * @param {number} blockSize - Block size in pixels
+     */
+    renderBridges(context, blockSize) {
+        const baseOffset = GameConfig.bridge.baseOffset;
+
+        // Helper function to draw a bridge
+        const drawBridge = (segment, idx) => {
+            if (segment.type !== 'bridge') return false;
+
+            const bridgeIndex = segment.bridgeIndex;
+            const pos = context.bridgePositions[bridgeIndex];
+            const bridgeData = context.bridgeSequence[bridgeIndex];
+
+            // Is this the current bridge being animated?
+            const isCurrentBridge = (context.bridge.currentSegment === segment &&
+                                     (context.gameState === GameState.BRIDGE_GROWING ||
+                                      context.gameState === GameState.BRIDGE_SLAMMING));
+
+            // Is this a completed bridge?
+            const isCompleted = idx < context.bridge.currentSegmentIndex - 1 ||
+                               (idx === context.bridge.currentSegmentIndex - 1 &&
+                                context.gameState !== GameState.BRIDGE_GROWING &&
+                                context.gameState !== GameState.BRIDGE_SLAMMING);
+
+            if (isCurrentBridge) {
+                // Draw current bridge being animated
+                if (context.gameState === GameState.BRIDGE_GROWING) {
+                    // Draw vertical bridge
+                    if (pos.direction === 'column') {
+                        this.drawVerticalBridge(pos.baseRow, pos.edgeCol, pos.direction, context.bridge.length, blockSize);
+                        this.drawBridgeEdgeLine(pos.baseRow, pos.edgeCol, pos.direction, blockSize);
+                    } else {
+                        this.drawVerticalBridge(pos.edgeRow, pos.baseCol, pos.direction, context.bridge.length, blockSize);
+                        this.drawBridgeEdgeLine(pos.edgeRow, pos.baseCol, pos.direction, blockSize);
+                    }
+                } else if (context.gameState === GameState.BRIDGE_SLAMMING) {
+                    // Draw rotating bridge
+                    if (pos.direction === 'column') {
+                        this.drawRotatingBridge(pos.baseRow, pos.edgeCol, pos.direction, context.bridge.length, context.bridge.rotation, blockSize);
+                        this.drawBridgeEdgeLine(pos.baseRow, pos.edgeCol, pos.direction, blockSize);
+                    } else {
+                        this.drawRotatingBridge(pos.edgeRow, pos.baseCol, pos.direction, context.bridge.length, context.bridge.rotation, blockSize);
+                        this.drawBridgeEdgeLine(pos.edgeRow, pos.baseCol, pos.direction, blockSize);
+                    }
+                }
+            } else if (isCompleted) {
+                // Draw completed bridge (horizontal)
+                // Base offset and length direction depend on bridge direction
+                // Bridge extends baseOffset back onto start island (covers edge line)
+                // and baseOffset onto end island (covers edge line)
+                if (pos.direction === 'column') {
+                    const offsetCol = pos.isPositive ? (pos.edgeCol - baseOffset) : (pos.edgeCol + baseOffset);
+                    const bridgeLength = pos.isPositive ? (bridgeData.targetLength + 2 * baseOffset) : -(bridgeData.targetLength + 2 * baseOffset);
+                    this.drawHorizontalBridge(pos.baseRow, offsetCol, pos.direction, bridgeLength, blockSize);
+                } else {
+                    const offsetRow = pos.isPositive ? (pos.edgeRow - baseOffset) : (pos.edgeRow + baseOffset);
+                    const bridgeLength = pos.isPositive ? (bridgeData.targetLength + 2 * baseOffset) : -(bridgeData.targetLength + 2 * baseOffset);
+                    this.drawHorizontalBridge(offsetRow, pos.baseCol, pos.direction, bridgeLength, blockSize);
+                }
+            }
+            return true;
+        };
+
+        // Draw all completed bridges (car drives over these)
+        context.pathSegments.forEach((segment, idx) => {
+            if (segment.type !== 'bridge') return;
+
+            const isCurrentBridge = (context.bridge.currentSegment === segment &&
+                                     (context.gameState === GameState.BRIDGE_GROWING ||
+                                      context.gameState === GameState.BRIDGE_SLAMMING));
+
+            // Draw if it's completed (not currently animating)
+            if (!isCurrentBridge) {
+                drawBridge(segment, idx);
+            }
+        });
+
+        // Draw positive direction bridges being animated (behind car)
+        context.pathSegments.forEach((segment, idx) => {
+            if (segment.type !== 'bridge') return;
+
+            const pos = context.bridgePositions[segment.bridgeIndex];
+            const isCurrentBridge = (context.bridge.currentSegment === segment &&
+                                     (context.gameState === GameState.BRIDGE_GROWING ||
+                                      context.gameState === GameState.BRIDGE_SLAMMING));
+
+            // Draw if it's currently animating and positive direction
+            if (isCurrentBridge && pos.isPositive) {
+                drawBridge(segment, idx);
+            }
+        });
+
+        // Draw negative direction bridges being animated (in front of car)
+        context.pathSegments.forEach((segment, idx) => {
+            if (segment.type !== 'bridge') return;
+
+            const pos = context.bridgePositions[segment.bridgeIndex];
+            const isCurrentBridge = (context.bridge.currentSegment === segment &&
+                                     (context.gameState === GameState.BRIDGE_GROWING ||
+                                      context.gameState === GameState.BRIDGE_SLAMMING));
+
+            // Draw if it's currently animating and negative direction
+            if (isCurrentBridge && !pos.isPositive) {
+                drawBridge(segment, idx);
+            }
+        });
     }
 
     /**
@@ -603,26 +874,24 @@ class Renderer {
      * @param {number} col - game grid column
      * @param {string} direction - 'row' or 'column' (direction car is facing)
      * @param {number} blockSize - size of each grid square in pixels
-     * @param {Object} sprites - car sprite images
-     * @param {boolean} spritesLoaded - whether sprites are loaded
      */
-    drawCar(row, col, direction, blockSize, sprites = null, spritesLoaded = false) {
+    drawCar(row, col, direction, blockSize) {
         // Get car screen position
         const screenPos = this.gameToScreen(row, col, 0);
         const screenX = screenPos.x * blockSize;
         const screenY = screenPos.y * blockSize;
 
         // If sprites are available, use them
-        if (spritesLoaded && sprites) {
+        if (this.spritesLoaded) {
             let sprite = null;
             let spriteSize = 40; // All sprites use 40x40 viewBox
 
             // Select sprite based on direction
             // Rectangular prism looks the same from front/back, so we don't need to distinguish positive/negative
             if (direction === 'row') {
-                sprite = sprites.rowPositive;
+                sprite = this.carSprites.rowPositive;
             } else if (direction === 'column') {
-                sprite = sprites.columnPositive;
+                sprite = this.carSprites.columnPositive;
             }
 
             if (sprite) {
