@@ -105,15 +105,18 @@
                 this.canvas.height = canvasHeight;
 
                 this.viewport = viewport;
-                this.renderer = new Renderer(this.canvas, this.viewport);
-                this.debug = new DebugRenderer(this.renderer);
 
                 // Car state (at start)
                 this.carRow = 1;
                 this.carCol = 1;
                 this.carDirection = 'column';
 
-                this.render();
+                // Create renderer and wait for sprites to load before rendering
+                this.renderer = new Renderer(this.canvas, this.viewport, () => {
+                    // Render once sprites are loaded
+                    this.render();
+                });
+                this.debug = new DebugRenderer(this.renderer);
             }
 
             createViewportAndCanvasSize() {

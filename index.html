@@ -4,10 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mountain Highway</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Philosopher:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Start Screen Overlay -->
+        <div id="startScreen" class="overlay">
+            <h1 class="game-title">MOUNTAIN HIGHWAY</h1>
+            <div class="instructions">
+                <p>Click and hold to grow bridge</p>
+                <p>Release to drop bridge</p>
+                <p>Make it to the top as fast as you can!</p>
+            </div>
+            <p class="start-prompt">Press the mouse button to start</p>
+        </div>
+    </div>
+
     <script src="js/config.js"></script>
     <script src="js/renderer.js"></script>
     <script src="js/course.js"></script>

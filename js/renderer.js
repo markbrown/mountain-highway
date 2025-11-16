@@ -142,7 +142,7 @@ class Viewport {
 }
 
 class Renderer {
-    constructor(canvas, viewport = null) {
+    constructor(canvas, viewport = null, onSpritesLoaded = null) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.viewport = viewport;
@@ -166,13 +166,14 @@ class Renderer {
         this.spritesLoaded = false;
 
         // Load sprites
-        this.loadSprites();
+        this.loadSprites(onSpritesLoaded);
     }
 
     /**
      * Load car sprite images
+     * @param {Function} onLoadComplete - Optional callback when sprites are loaded
      */
-    loadSprites() {
+    loadSprites(onLoadComplete = null) {
         const spritesToLoad = 2; // row and column sprites
         let loadedCount = 0;
 
@@ -180,6 +181,9 @@ class Renderer {
             loadedCount++;
             if (loadedCount === spritesToLoad) {
                 this.spritesLoaded = true;
+                if (onLoadComplete) {
+                    onLoadComplete();
+                }
             }
         };
 

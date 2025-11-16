@@ -885,7 +885,14 @@ const finalPos = startPos + signedDistance;
   - Lose condition: fall off edge (bridge too short/long)
 
 ### Planned
-- ⏳ Vertical scrolling to follow car (currently implemented but may need refinement)
-- ⏳ Game states (start screen, game over, win screen with restart)
+- ✅ Vertical scrolling to follow car (implemented with clamping to course bounds)
+- ✅ Start screen
+  - Minimalist overlay design with white text on game background
+  - Game title in all caps with Philosopher font from Google Fonts
+  - Brief instructions (3 lines: grow bridge, drop bridge, reach the top)
+  - Click anywhere on canvas to start
+  - Sprite preloading ensures car sprite displays correctly on first render
+  - START_SCREEN game state prevents animation until player starts
+- ⏳ Game over and win screens with restart functionality
 - ⏳ Sound effects
 - ⏳ Visual polish (power meter, distance indicators, score display)

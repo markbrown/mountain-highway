@@ -2,6 +2,7 @@
 
 // Game state constants
 const GameState = {
+    START_SCREEN: 'start_screen',
     DRIVING: 'driving',
     TURNING: 'turning',
     BRIDGE_GROWING: 'bridge_growing',
@@ -95,7 +96,7 @@ class Game {
         this.bridgeRotation = 0; // 0 = vertical, Math.PI/2 = horizontal
 
         // Game state machine
-        this.gameState = GameState.DRIVING;
+        this.gameState = GameState.START_SCREEN;
         this.stateProgress = 0;
         this.lastTime = 0;
 
@@ -198,14 +199,50 @@ class Game {
         // Log path segments for debugging
         console.log('Path segments:', this.pathSegments);
 
-        // Set up mouse input handlers
+        // Set up input handlers
         this.setupInputHandlers();
+        this.setupStartScreen();
 
-        // Start with first segment
+        // Render the start screen (but don't start animation loop yet)
+        this.render();
+    }
+
+    /**
+     * Start the game (called when player clicks Start button)
+     */
+    startGame() {
+        // Hide start screen
+        const startScreen = document.getElementById('startScreen');
+        if (startScreen) {
+            startScreen.style.display = 'none';
+        }
+
+        // Initialize game state
+        this.gameState = GameState.DRIVING;
         this.startNextSegment();
 
         // Start animation loop
         requestAnimationFrame((time) => this.animate(time));
+    }
+
+    /**
+     * Set up start screen - click anywhere to start
+     */
+    setupStartScreen() {
+        const startHandler = (e) => {
+            if (this.gameState === GameState.START_SCREEN) {
+                this.startGame();
+                // Remove the handler after starting
+                this.canvas.removeEventListener('mousedown', startHandler);
+                this.canvas.removeEventListener('touchstart', startHandler);
+            }
+        };
+
+        // Mouse click to start
+        this.canvas.addEventListener('mousedown', startHandler);
+
+        // Touch to start
+        this.canvas.addEventListener('touchstart', startHandler);
     }
 
     /**
@@ -256,7 +293,12 @@ class Game {
 
         // Create or update renderer with new viewport
         if (this.renderer === null) {
-            this.renderer = new Renderer(this.canvas, this.viewport);
+            this.renderer = new Renderer(this.canvas, this.viewport, () => {
+                // Re-render once sprites are loaded
+                if (this.gameState === GameState.START_SCREEN) {
+                    this.render();
+                }
+            });
             this.debug = new DebugRenderer(this.renderer);
         } else {
             // Update existing renderer's viewport
