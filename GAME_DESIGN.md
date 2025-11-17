@@ -784,6 +784,28 @@ The falling mechanic revealed that rendering logic was split between Game and Re
 - **Visual Feedback**: Power meter during bridge extension
 - **Win Condition**: Complete course vs. endless mode
 
+## Possible Improvements
+
+### Ignore Focus-Gaining Clicks
+
+**Problem**: When clicking on the browser window to bring it into focus, the click can also trigger game actions (starting the game, building bridges). This can be annoying when switching between windows.
+
+**Proposed Solution**: Track window focus/blur events and ignore clicks that occur shortly after gaining focus.
+
+**Implementation approach**:
+1. Add event listeners for `window.addEventListener('focus')` and `window.addEventListener('blur')`
+2. When window gains focus, record the timestamp
+3. In mouse click handlers, check if current time is within ~100-200ms of last focus event
+4. If so, ignore the click (it was likely just bringing the window into focus)
+
+**Trade-offs**:
+- Pro: Prevents accidental game actions when switching back to the window
+- Con: Adds slight complexity to input handling
+- Con: May feel less responsive for users who genuinely want to click immediately after switching windows
+- Con: The time threshold is a heuristic and may need tuning
+
+**Note**: This is not currently implemented as it's unclear whether the improvement outweighs the added complexity.
+
 ## Code Patterns and Best Practices
 
 ### Handling Bidirectional Movement

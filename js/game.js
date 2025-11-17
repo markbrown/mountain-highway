@@ -391,6 +391,11 @@ class Game {
      */
     setupStartScreen() {
         const startHandler = (e) => {
+            // For mouse events, only respond to left button (button 0)
+            if (e.type === 'mousedown' && e.button !== 0) {
+                return;
+            }
+
             if (this.gameState === GameState.START_SCREEN) {
                 this.startGame();
             } else if (this.gameState === GameState.FINISH || this.gameState === GameState.GAME_OVER) {
@@ -411,6 +416,9 @@ class Game {
     setupInputHandlers() {
         // Mouse down - start growing bridge
         this.canvas.addEventListener('mousedown', (e) => {
+            // Only respond to left button (button 0)
+            if (e.button !== 0) return;
+
             if (this.gameState === GameState.BRIDGE_GROWING) {
                 this.mousePressed = true;
                 console.log('Mouse pressed - bridge growing');
@@ -419,6 +427,9 @@ class Game {
 
         // Mouse up - stop growing and slam bridge
         this.canvas.addEventListener('mouseup', (e) => {
+            // Only respond to left button (button 0)
+            if (e.button !== 0) return;
+
             if (this.gameState === GameState.BRIDGE_GROWING && this.mousePressed) {
                 this.mousePressed = false;
                 this.slamBridge();
