@@ -812,6 +812,150 @@ The falling mechanic revealed that rendering logic was split between Game and Re
 
 **Note**: This is not currently implemented as it's unclear whether the improvement outweighs the added complexity.
 
+### Mobile Optimization
+
+The game currently works on mobile devices via touch events, but several improvements would enhance the mobile experience:
+
+#### 1. Canvas Aspect Ratio Limits
+
+**Current behavior**: Canvas height is dynamically calculated as `800 / aspectRatio`, which can result in very tall canvases on portrait mobile devices (e.g., 800×1400px).
+
+**Problem**: On tall/narrow screens, UI elements (countdown, timer) may be spread too far apart vertically, making the game feel disconnected.
+
+**Proposed solution**: Add a maximum canvas height limit for very tall aspect ratios.
+- Example: Cap canvas height at 1000px
+- Formula: `canvasHeight = Math.min(800 / aspectRatio, 1000)`
+- This would add letterboxing (black bars) on very tall screens but keep UI readable
+
+**Trade-offs**:
+- Pro: Better UI density on portrait mobile devices
+- Pro: Maintains reasonable proportions across all devices
+- Con: Adds black bars on very tall screens
+- Con: Need to test appropriate maximum value across different devices
+
+#### 2. Adaptive Text for Touch Devices
+
+**Current behavior**: Instructions always say "Click and hold" and "Press the mouse button to play".
+
+**Problem**: Mobile users don't have a mouse, so instructions are confusing.
+
+**Proposed solution**: Detect touch support and show appropriate text.
+- Detection: `'ontouchstart' in window || navigator.maxTouchPoints > 0`
+- Touch version: "Tap and hold to grow bridge", "Tap the screen to play"
+- Mouse version: "Click and hold to grow bridge", "Press the mouse button to play"
+
+**Implementation**:
+- Add touch detection in Game constructor
+- Pass touch/mouse flag to UI text rendering
+- Use appropriate text based on input method
+
+**Trade-offs**:
+- Pro: Instructions match user's input method
+- Pro: More professional, polished experience
+- Con: Slight complexity in text management
+- Con: Hybrid devices (touchscreen laptops) might show "tap" even when user prefers mouse
+
+#### 3. Black Background Margins
+
+**Current behavior**: Body background is white (`#ffffff`).
+
+**Problem**: White margins around the game canvas feel jarring and unprofessional, especially on mobile where screen real estate is limited.
+
+**Proposed solution**: Change body background to black (`#000000`).
+- Simple CSS change: `body { background-color: #000000; }`
+
+**Benefits**:
+- More professional appearance
+- Better on all platforms (desktop and mobile)
+- Less eye strain in dark environments
+- Common convention for games (immersive black borders)
+
+**Trade-offs**:
+- Pro: Simple change with universal benefit
+- Con: None identified
+
+#### 4. In-Game Back/Restart Button
+
+**Current behavior**: Players can only restart after finishing or crashing. No way to quit mid-game.
+
+**Problem**:
+- On mobile, users might want to return to instructions
+- No way to restart if you make an early mistake
+- Frustrating UX - must complete or crash to try again
+
+**Proposed solution**: Add a "Back" or "Restart" button during gameplay.
+- Position: Top-left corner (opposite timer in top-right)
+- Icon: "⏸" (pause), "↩" (back), or "⟲" (restart)
+- Action: Returns to start screen with instructions
+- Styling: Small, unobtrusive, but tappable (min 44×44px touch target)
+
+**Implementation**:
+- Add button to HTML overlay (CSS positioned)
+- Show/hide based on game state (visible during gameplay, hidden on start/finish screens)
+- Click/tap handler: Reset game state and return to START_SCREEN
+
+**Trade-offs**:
+- Pro: Better UX for mobile and desktop
+- Pro: Allows quick retry after early mistakes
+- Con: Adds visual clutter (minimal if designed well)
+- Con: Need to ensure button doesn't interfere with gameplay
+
+#### 5. Touch Feedback and Accidental Touches
+
+**Current behavior**: Bridge starts growing immediately when screen is tapped.
+
+**Potential issues**:
+- Easy to trigger bridge growth accidentally while scrolling or tapping UI
+- No visual feedback when touch is registered (besides bridge growing)
+
+**Proposed improvements**:
+- **Visual feedback**: Could add subtle highlight or vibration when touch starts (though bridge growth may be sufficient)
+- **Dead zone**: Small delay (50-100ms) before bridge starts growing to prevent accidental triggers
+- **Touch area**: Consider making the canvas the only touch-sensitive area (not overlays)
+
+**Trade-offs**:
+- Pro: Prevents frustrating accidental triggers
+- Con: Adds input lag (may feel less responsive)
+- Note: Current implementation may already be fine - needs real device testing
+
+#### 6. iOS Safe Area Support
+
+**Current behavior**: UI elements positioned with fixed pixel values.
+
+**Problem**: iOS notch, Dynamic Island, and home indicator might obscure timer or back button.
+
+**Proposed solution**: Use CSS safe area insets.
+```css
+.timer-display {
+    top: max(20px, env(safe-area-inset-top) + 10px);
+    right: max(20px, env(safe-area-inset-right) + 10px);
+}
+```
+
+**Trade-offs**:
+- Pro: UI always visible on iOS devices
+- Con: Slight complexity in CSS
+- Note: Only matters if we add UI elements near screen edges
+
+#### 7. Performance on Mobile Devices
+
+**Current behavior**: Canvas rendering with SVG sprites, transform animations.
+
+**Potential issues**:
+- Older mobile devices may struggle with canvas rendering
+- SVG scaling and rotation could impact frame rate
+- Large canvas sizes (800×1400) have more pixels to render
+
+**Proposed optimizations** (if needed after testing):
+- Reduce canvas resolution on low-end devices
+- Pre-render sprites at common sizes
+- Optimize animation loops
+- Consider requestAnimationFrame throttling on older devices
+
+**Note**: Modern mobile browsers handle canvas well. Only optimize if testing reveals issues.
+
+**Priority for implementation**: Items 2, 3, and 4 are most important for immediate mobile usability. Item 1 should be tested on real devices before implementing. Items 5, 6, 7 are lower priority and depend on real-world testing.
+
 ## Code Patterns and Best Practices
 
 ### Handling Bidirectional Movement
