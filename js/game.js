@@ -64,9 +64,19 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
 
-        // Set canvas element dimensions from config
-        this.canvas.width = GameConfig.canvas.width;
-        this.canvas.height = GameConfig.canvas.height;
+        // Set canvas size based on container dimensions
+        this.updateCanvasSize();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            this.updateCanvasSize();
+            this.updateViewport();
+
+            // Re-render if on start screen (no animation loop running)
+            if (this.gameState === GameState.START_SCREEN && this.renderer) {
+                this.render();
+            }
+        });
 
         // Viewport will be updated each frame based on car position
         this.viewport = null;
@@ -127,6 +137,32 @@ class Game {
     /**
      * Calculate course bounds from islands
      */
+    /**
+     * Update canvas resolution to match container aspect ratio
+     */
+    updateCanvasSize() {
+        // Get container dimensions
+        const container = this.canvas.parentElement;
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+
+        console.log('=== CANVAS SIZE UPDATE ===');
+        console.log('Container dimensions:', containerWidth, 'x', containerHeight);
+
+        // Calculate container aspect ratio
+        const aspectRatio = containerWidth / containerHeight;
+        console.log('Aspect ratio:', aspectRatio);
+
+        // Set canvas width to reference (800px)
+        // Calculate canvas height to match container aspect ratio
+        // This ensures uniform scaling: containerWidth/800 = containerHeight/canvasHeight
+        this.canvas.width = GameConfig.canvas.width;
+        this.canvas.height = this.canvas.width / aspectRatio;
+
+        console.log('Canvas internal resolution:', this.canvas.width, 'x', this.canvas.height);
+        console.log('==========================');
+    }
+
     calculateCourseBounds() {
         let minRow = Infinity, maxRow = -Infinity;
         let minCol = Infinity, maxCol = -Infinity;
@@ -413,7 +449,7 @@ class Game {
      * Update viewport based on current car position
      */
     updateViewport() {
-        this.viewport = this.createViewportForCanvas(GameConfig.canvas.width, GameConfig.canvas.height);
+        this.viewport = this.createViewportForCanvas(this.canvas.width, this.canvas.height);
 
         // Create or update renderer with new viewport
         if (this.renderer === null) {
@@ -427,8 +463,6 @@ class Game {
         } else {
             // Update existing renderer's viewport
             this.renderer.viewport = this.viewport;
-            this.canvas.width = this.viewport.canvasWidth;
-            this.canvas.height = this.viewport.canvasHeight;
         }
     }
 

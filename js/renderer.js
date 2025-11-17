@@ -89,29 +89,37 @@ class Viewport {
             // Larger (row+col) = more negative screenY = visually lower (bottom of course)
 
             // Course visual layout:
-            // - Start of course (small row+col) is at BOTTOM of screen (canvas Y = canvasHeight)
-            // - End of course (large row+col) is at TOP of screen (canvas Y = 0)
+            // - Start of course (small row+col) is at BOTTOM of canvas (canvas Y = canvasHeight)
+            // - End of course (large row+col) is at TOP of canvas (canvas Y = 0)
             // - More negative screenY = higher in race = visually higher (toward top)
 
-            // 1. Calculate offset when START of course is at BOTTOM of canvas
-            // Start is the corner with minimum (row + col) - which is (minRow, minCol)
-            const startRow = this.courseBounds ? this.courseBounds.minRow : this.minRow;
-            const startCol = this.courseBounds ? this.courseBounds.minCol : this.minCol;
-            const startScreenY = -(startRow + startCol) / 2;
-            // When start is at bottom of canvas: canvasHeight = startScreenY * blockSize + offset
-            // offset = canvasHeight - startScreenY * blockSize
-            const offsetWhenAtStart = this.canvasHeight - startScreenY * this.blockSize;
+            // Get course bounds (in game coordinates)
+            // courseBounds.minRow/minCol = bottom of course visually (-1, -1)
+            // courseBounds.maxRow/maxCol = top of course visually (max, max)
+            const bottomRow = this.courseBounds ? this.courseBounds.minRow : this.minRow;
+            const bottomCol = this.courseBounds ? this.courseBounds.minCol : this.minCol;
+            const topRow = this.courseBounds ? this.courseBounds.maxRow : this.maxRow;
+            const topCol = this.courseBounds ? this.courseBounds.maxCol : this.maxCol;
 
-            // 2. Calculate offset when END of course is at TOP of canvas
-            // End is the corner with maximum (row + col) - which is (maxRow, maxCol)
-            const endRow = this.courseBounds ? this.courseBounds.maxRow : this.maxRow;
-            const endCol = this.courseBounds ? this.courseBounds.maxCol : this.maxCol;
-            const endScreenY = -(endRow + endCol) / 2;
-            // When end is at top of canvas (canvas Y = 0): 0 = endScreenY * blockSize + offset
-            // offset = -endScreenY * blockSize
-            const offsetWhenAtEnd = -endScreenY * this.blockSize;
+            // Convert to screen space
+            // Bottom of course has MORE POSITIVE screenY (due to isometric formula)
+            // Top of course has MORE NEGATIVE screenY
+            const bottomScreenY = -(bottomRow + bottomCol) / 2;
+            const topScreenY = -(topRow + topCol) / 2;
 
-            // 3. Calculate offset that centers the car vertically
+            // Calculate offset constraints:
+
+            // 1. Offset when TOP of course is at TOP of canvas (canvasY = 0)
+            // When top is at canvas top: 0 = topScreenY * blockSize + offset
+            // This prevents seeing above the course (upper bound on offset)
+            const offsetTopLocked = -topScreenY * this.blockSize;
+
+            // 2. Offset when BOTTOM of course is at BOTTOM of canvas
+            // When bottom is at canvas bottom: canvasHeight = bottomScreenY * blockSize + offset
+            // This prevents seeing below the course (lower bound on offset - STRONGER)
+            const offsetBottomLocked = this.canvasHeight - bottomScreenY * this.blockSize;
+
+            // 3. Offset that centers the car vertically
             let offsetCentered;
             if (carRow !== null && carCol !== null) {
                 // Use car's actual position
@@ -126,9 +134,22 @@ class Viewport {
             }
 
             // 4. Clamp centered offset so we don't scroll past course boundaries
-            // offsetWhenAtStart < offsetWhenAtEnd (start at bottom needs smaller offset than end at top)
-            // We want: offsetWhenAtStart <= offsetY <= offsetWhenAtEnd
-            const offsetY = Math.max(offsetWhenAtStart, Math.min(offsetWhenAtEnd, offsetCentered));
+            // Apply constraints in order (as per user requirements):
+            // - Step 1: Start with car centered
+            // - Step 2: Apply top constraint (upper bound, weaker)
+            // - Step 3: Apply bottom constraint (lower bound, STRONGER)
+            //
+            // offsetTopLocked = UPPER BOUND on offset (max allowed)
+            //   - If offset too large, top of course moves too far down, we see above course
+            // offsetBottomLocked = LOWER BOUND on offset (min allowed)
+            //   - If offset too small, bottom of course moves too far up, we see below course
+            //
+            // When offsetBottomLocked > offsetTopLocked, constraints conflict (course fits on screen)
+            // In this case, bottom constraint wins
+
+            let offsetY = offsetCentered;                      // Step 1: car centered
+            offsetY = Math.min(offsetY, offsetTopLocked);      // Step 2: apply upper bound (weaker)
+            offsetY = Math.max(offsetY, offsetBottomLocked);   // Step 3: apply lower bound (STRONGER)
 
             return { x: offsetX, y: offsetY };
         } else {

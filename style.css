@@ -11,19 +11,23 @@ body {
     min-height: 100vh;
     background-color: #ffffff;
     font-family: 'Ranchers', cursive;
+    overflow: hidden; /* Prevent scrollbars */
 }
 
-/* Container for canvas and overlay - keeps game contained */
+/* Container for canvas and overlay - fills viewport height with width limit */
 .game-container {
     position: relative;
-    width: 800px;
-    height: 600px;
+    width: min(100vw, 177.78vh); /* Full width up to 16:9 aspect ratio limit */
+    height: 100vh; /* Always fill height */
 }
 
 #gameCanvas {
     border: 2px solid #333;
     background-color: #87CEEB;
     display: block;
+    /* Canvas element fills the container */
+    width: 100%;
+    height: 100%;
 }
 
 /* Start screen overlay - positioned over canvas, transparent background with white text */

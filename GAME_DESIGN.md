@@ -77,7 +77,7 @@ When extending a course with a new span:
 
 - **Aesthetic**: Minimalist design using straight lines and simple colors
 - **Perspective**: Isometric graphics aligned to a square grid
-- **Canvas**: Fixed 800×600 pixel canvas
+- **Canvas**: Fixed 800×600 pixel canvas scaled via CSS transform based on window width (max 16:9 aspect ratio)
 - **Scrolling**: Dynamic vertical scrolling (details below)
 - **Colors**:
   - Sky: Light blue (#87CEEB)
@@ -131,8 +131,11 @@ The `Viewport` class manages what portion of the game world is visible:
    - Offset positions viewport at canvas origin
    - No scrolling - entire game region visible
 
-2. **Fixed canvas with scrolling** (used in main game, 800×600):
-   - Canvas size is fixed
+2. **Fixed canvas with CSS scaling** (used in main game):
+   - Canvas resolution fixed at 800×600 pixels
+   - CSS transform scales canvas uniformly based on container width
+   - Scale = containerWidth / 800 (maintains 4:3 aspect ratio)
+   - Container width fills 100vw (max 177.78vh for 16:9 aspect ratio limit)
    - Viewport shows a moving window into the game world
    - Offset centers the viewport region on the canvas
    - Changing minRow/maxRow values = vertical scrolling
@@ -457,7 +460,7 @@ The **Viewport** class defines what region of the infinite grid plane to display
 
 **Example Usage:**
 ```javascript
-// Fixed-size canvas (main game - 800x600 showing specific region)
+// Fixed canvas with CSS scaling (main game - 800×600 scaled via CSS transform)
 const viewport = new Viewport(-1, 11, -1, 9, 50, 800, 600);
 
 // Auto-sized canvas (test suite - size calculated to fit islands)
