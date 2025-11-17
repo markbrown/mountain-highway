@@ -57,6 +57,12 @@ class RenderContext {
             targetIslandIndex: options.targetIslandIndex,
             bridgeIsPositive: options.bridgeIsPositive
         };
+
+        // Canvas-rendered UI elements (countdown and timer)
+        this.canvasUI = {
+            countdownValue: options.countdownValue || null,
+            timer: options.timer || null
+        };
     }
 }
 
@@ -870,6 +876,21 @@ class Game {
         // Use the sign stored in the current segment (reliable and works even when car is stopped)
         let carSign = (this.currentSegment && this.currentSegment.sign) ? this.currentSegment.sign : 1;
 
+        // Determine canvas UI elements (countdown and timer)
+        let countdownValue = null;
+        let timerValue = null;
+
+        if (this.gameState === GameState.COUNTDOWN) {
+            countdownValue = this.countdownValue;
+        } else if (this.gameState === GameState.DRIVING ||
+                   this.gameState === GameState.TURNING ||
+                   this.gameState === GameState.BRIDGE_GROWING ||
+                   this.gameState === GameState.BRIDGE_SLAMMING ||
+                   this.gameState === GameState.DOOMED ||
+                   this.gameState === GameState.SEGMENT_DONE) {
+            timerValue = Math.floor(this.gameTimer) + 's';
+        }
+
         // Create rendering context with all game state
         const context = new RenderContext({
             gameState: this.gameState,
@@ -891,36 +912,13 @@ class Game {
             bridgePositions: this.bridgePositions,
             bridgeSequence: this.bridgeSequence,
             targetIslandIndex: this.targetIslandIndex,
-            bridgeIsPositive: this.bridgeIsPositive
+            bridgeIsPositive: this.bridgeIsPositive,
+            countdownValue: countdownValue,
+            timer: timerValue
         });
 
         // Delegate all rendering to the renderer
         this.renderer.renderScene(context, this.viewport, this.debug);
-
-        // Update timer display
-        this.updateTimerDisplay();
-    }
-
-    /**
-     * Update the timer display element
-     */
-    updateTimerDisplay() {
-        const timerDisplay = document.getElementById('timerDisplay');
-        if (!timerDisplay) return;
-
-        // Show timer only during active gameplay
-        if (this.gameState === GameState.DRIVING ||
-            this.gameState === GameState.TURNING ||
-            this.gameState === GameState.BRIDGE_GROWING ||
-            this.gameState === GameState.BRIDGE_SLAMMING ||
-            this.gameState === GameState.DOOMED ||
-            this.gameState === GameState.SEGMENT_DONE) {
-            timerDisplay.style.display = 'block';
-            // Display without decimal places during gameplay
-            timerDisplay.textContent = Math.floor(this.gameTimer) + 's';
-        } else {
-            timerDisplay.style.display = 'none';
-        }
     }
 }
 

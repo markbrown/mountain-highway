@@ -77,7 +77,7 @@ When extending a course with a new span:
 
 - **Aesthetic**: Minimalist design using straight lines and simple colors
 - **Perspective**: Isometric graphics aligned to a square grid
-- **Canvas**: Fixed 800×600 pixel canvas scaled via CSS transform based on window width (max 16:9 aspect ratio)
+- **Canvas**: Fixed 800px width, dynamic height based on aspect ratio, scaled via CSS to fill browser window (max 16:9 aspect ratio)
 - **Scrolling**: Dynamic vertical scrolling (details below)
 - **Colors**:
   - Sky: Light blue (#87CEEB)
@@ -85,15 +85,21 @@ When extending a course with a new span:
   - Island dirt (right wall): Light brown (#8B4513)
   - Island dirt (left wall): Dark brown (#6B3410)
   - Black outlines where faces meet
-- **Typography**: Google Fonts with consistent font pairing
-  - **Luckiest Guy** (cursive) - All text content:
-    1. Titles: "MOUNTAIN HIGHWAY", "YOU MADE IT!", "YOU CRASHED!"
-    2. Prompts: "Press the mouse button to play"
-    3. Instructions: Start screen instructions (3 lines)
-  - **Ranchers** (cursive) - All numeric/timing displays:
-    4. Countdown: "3", "2", "1" (pre-game countdown)
-    5. In-play timer: "15s" (top right during gameplay)
-    6. Finishing time: "Time: 25.9s" (finish screen)
+- **Typography**: Hybrid approach using both CSS overlays and canvas rendering
+  - **CSS Overlays** (via HTML elements, positioned over canvas):
+    - **Luckiest Guy** font - Static screen text:
+      1. Title: "MOUNTAIN HIGHWAY" (start screen)
+      2. End screens: "YOU MADE IT!", "YOU CRASHED!"
+      3. Prompts: "Press the mouse button to play"
+      4. Instructions: Start screen instructions (3 lines)
+    - **Ranchers** font - Finish time display:
+      5. Finishing time: "Time: 25.9s" (finish screen)
+  - **Canvas Rendering** (drawn directly on canvas, scales with game):
+    - **Ranchers** font - Dynamic game elements:
+      6. Countdown: "3", "2", "1" (pre-game countdown, centered)
+      7. In-play timer: "15s" (top right during gameplay)
+
+  **Design rationale**: CSS overlays provide consistent text sizing across window sizes, while countdown and timer are rendered on canvas to scale uniformly with game graphics.
 
 ## Viewport and Scrolling
 

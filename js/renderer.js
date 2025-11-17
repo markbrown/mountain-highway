@@ -330,6 +330,48 @@ class Renderer {
         }
 
         this.ctx.restore();
+
+        // Render canvas UI elements (countdown and timer)
+        this.renderCanvasUI(context);
+    }
+
+    /**
+     * Render countdown and timer on canvas
+     * These scale with the canvas while CSS overlays handle other text
+     * @param {RenderContext} context - Bundled game state for rendering
+     */
+    renderCanvasUI(context) {
+        const ctx = this.ctx;
+        const canvasWidth = this.canvas.width;
+        const canvasHeight = this.canvas.height;
+
+        // Render countdown number (large centered number during countdown)
+        if (context.canvasUI.countdownValue !== null) {
+            ctx.save();
+            ctx.font = '200px Ranchers';
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.lineWidth = 4;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.strokeText(context.canvasUI.countdownValue.toString(), canvasWidth / 2, canvasHeight / 2);
+            ctx.fillText(context.canvasUI.countdownValue.toString(), canvasWidth / 2, canvasHeight / 2);
+            ctx.restore();
+        }
+
+        // Render timer (top right during gameplay)
+        if (context.canvasUI.timer !== null) {
+            ctx.save();
+            ctx.font = '48px Ranchers';
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.lineWidth = 3;
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'top';
+            ctx.strokeText(context.canvasUI.timer, canvasWidth - 20, 20);
+            ctx.fillText(context.canvasUI.timer, canvasWidth - 20, 20);
+            ctx.restore();
+        }
     }
 
     /**
