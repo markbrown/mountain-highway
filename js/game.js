@@ -141,7 +141,10 @@ class Game {
 
         // Detect touch device and create UI manager
         this.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        this.ui = new UIManager(this.isTouchDevice);
+        this.ui = new UIManager(this.isTouchDevice, this.canvas.parentElement);
+
+        // Set up back button callback
+        this.ui.onBackPressed = () => this.goToStartScreen();
 
         // Safe area insets for iOS notch/Dynamic Island support
         this.safeAreaInsets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -314,6 +317,9 @@ class Game {
         this.countdownValue = 3;
         this.countdownTimer = 0;
 
+        // Show back button (visible throughout gameplay and end screens)
+        this.ui.showBackButton();
+
         // Update overlay to show countdown
         this.updateCountdownDisplay();
 
@@ -386,6 +392,47 @@ class Game {
 
         // Update overlay to show countdown
         this.updateCountdownDisplay();
+    }
+
+    /**
+     * Go back to start screen (from gameplay)
+     */
+    goToStartScreen() {
+        // Reset game state
+        this.gameState = GameState.START_SCREEN;
+
+        // Reset car position
+        this.carRow = this.course.startRow;
+        this.carCol = this.course.startCol;
+        this.carDirection = this.pathSegments[0].direction;
+
+        // Reset segment tracking
+        this.currentSegmentIndex = 0;
+        this.currentSegment = null;
+
+        // Reset bridge state
+        this.bridgeLength = 0;
+        this.bridgeRotation = 0;
+
+        // Reset falling state
+        this.carZOffset = 0;
+        this.carFallVelocity = 0;
+        this.carTumbleRotation = 0;
+        this.fallPoint = null;
+        this.fallTimer = 0;
+
+        // Reset timer state
+        this.gameTimer = 0;
+        this.finishTime = 0;
+        this.lastTime = 0;
+
+        // Show start screen UI
+        this.ui.showStartScreen();
+        this.ui.hideBackButton();
+
+        // Update viewport and render
+        this.updateViewport();
+        this.render();
     }
 
     /**

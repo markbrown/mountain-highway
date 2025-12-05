@@ -87,3 +87,76 @@ body {
     margin-bottom: 80px;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
 }
+
+/* Back button (visible during gameplay) */
+.back-btn {
+    position: absolute;
+    top: max(20px, env(safe-area-inset-top) + 10px);
+    left: max(20px, env(safe-area-inset-left) + 10px);
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    display: none; /* Hidden by default, shown during gameplay */
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    transition: background 0.2s;
+    color: white;
+}
+
+.back-btn:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.back-btn:active {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.back-btn.visible {
+    display: flex;
+}
+
+/* Fullscreen toggle button */
+.fullscreen-btn {
+    position: absolute;
+    bottom: max(20px, env(safe-area-inset-bottom) + 10px);
+    right: max(20px, env(safe-area-inset-right) + 10px);
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    transition: background 0.2s;
+    color: white;
+}
+
+.fullscreen-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.fullscreen-btn:active {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* Show enter icon by default, exit icon when fullscreen */
+.fullscreen-icon.exit {
+    display: none;
+}
+
+:fullscreen .fullscreen-icon.enter,
+:-webkit-full-screen .fullscreen-icon.enter {
+    display: none;
+}
+
+:fullscreen .fullscreen-icon.exit,
+:-webkit-full-screen .fullscreen-icon.exit {
+    display: block;
+}
