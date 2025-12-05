@@ -61,7 +61,8 @@ class RenderContext {
         // Canvas-rendered UI elements (countdown and timer)
         this.canvasUI = {
             countdownValue: options.countdownValue || null,
-            timer: options.timer || null
+            timer: options.timer || null,
+            safeAreaInsets: options.safeAreaInsets || { top: 0, right: 0, bottom: 0, left: 0 }
         };
     }
 }
@@ -76,6 +77,7 @@ class Game {
         // Handle window resize
         window.addEventListener('resize', () => {
             this.updateCanvasSize();
+            this.updateSafeAreaInsets();
             this.updateViewport();
 
             // Re-render if on start screen (no animation loop running)
@@ -110,6 +112,7 @@ class Game {
 
         // Player input state
         this.mousePressed = false;
+        this.pressStartTime = 0;      // Timestamp when press began (for dead zone)
 
         this.bridgeLength = 0;
         this.bridgeRotation = 0; // 0 = vertical, Math.PI/2 = horizontal
@@ -136,8 +139,49 @@ class Game {
         this.gameTimer = 0;           // Total time elapsed during gameplay (seconds)
         this.finishTime = 0;          // Time when player finished (for display)
 
+        // Detect touch device and create UI manager
+        this.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        this.ui = new UIManager(this.isTouchDevice);
+
+        // Safe area insets for iOS notch/Dynamic Island support
+        this.safeAreaInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+        this.updateSafeAreaInsets();
+
         // Wait for renderer to load sprites, then initialize
         this.init();
+    }
+
+    /**
+     * Update safe area insets from CSS environment variables
+     * These account for iOS notch, Dynamic Island, and home indicator
+     */
+    updateSafeAreaInsets() {
+        // Create a temporary element to read CSS env() values
+        const div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.visibility = 'hidden';
+        document.body.appendChild(div);
+
+        // Read each safe area inset
+        const insets = ['top', 'right', 'bottom', 'left'];
+        insets.forEach(side => {
+            div.style.paddingTop = `env(safe-area-inset-${side}, 0px)`;
+            const computed = window.getComputedStyle(div).paddingTop;
+            this.safeAreaInsets[side] = parseFloat(computed) || 0;
+        });
+
+        document.body.removeChild(div);
+
+        // Convert CSS pixels to canvas pixels (account for canvas scaling)
+        // Canvas is scaled to fit container, so we need to convert
+        const container = this.canvas.parentElement;
+        const scaleX = this.canvas.width / container.clientWidth;
+        const scaleY = this.canvas.height / container.clientHeight;
+
+        this.safeAreaInsets.top *= scaleY;
+        this.safeAreaInsets.bottom *= scaleY;
+        this.safeAreaInsets.left *= scaleX;
+        this.safeAreaInsets.right *= scaleX;
     }
 
     /**
@@ -234,7 +278,7 @@ class Game {
             minRow = courseBounds.minRow;
         }
 
-        return new Viewport(minRow, maxRow, minCol, maxCol, blockSize, canvasWidth, canvasHeight, courseBounds);
+        return new Viewport(minRow, maxRow, minCol, maxCol, blockSize, canvasWidth, canvasHeight, courseBounds, this.safeAreaInsets);
     }
 
     init() {
@@ -281,19 +325,8 @@ class Game {
      * Update the overlay to show countdown number
      */
     updateCountdownDisplay() {
-        const startScreen = document.getElementById('startScreen');
-        if (!startScreen) return;
-
-        const title = startScreen.querySelector('.game-title');
-        const instructions = startScreen.querySelector('.instructions');
-        const prompt = startScreen.querySelector('.start-prompt');
-
         if (this.gameState === GameState.COUNTDOWN) {
-            // Show countdown number
-            title.textContent = this.countdownValue.toString();
-            title.classList.add('countdown');
-            instructions.style.display = 'none';
-            prompt.style.display = 'none';
+            this.ui.showCountdown(this.countdownValue);
         }
     }
 
@@ -301,58 +334,21 @@ class Game {
      * Hide the start screen overlay
      */
     hideStartScreen() {
-        const startScreen = document.getElementById('startScreen');
-        if (startScreen) {
-            startScreen.style.display = 'none';
-        }
+        this.ui.hide();
     }
 
     /**
      * Show the finish screen when player completes the course
      */
     showFinishScreen() {
-        const startScreen = document.getElementById('startScreen');
-        if (!startScreen) return;
-
-        const title = startScreen.querySelector('.game-title');
-        const instructions = startScreen.querySelector('.instructions');
-        const prompt = startScreen.querySelector('.start-prompt');
-
-        // Show finish screen overlay
-        startScreen.style.display = 'flex';
-
-        // Update text for finish screen
-        title.textContent = 'YOU MADE IT!';
-        title.classList.remove('countdown');
-
-        // Show finish time with one decimal place
-        instructions.innerHTML = `<p class="finish-time">Time: ${this.finishTime.toFixed(1)}s</p>`;
-        instructions.style.display = 'block';
-
-        prompt.textContent = 'Press the mouse button to play again';
-        prompt.style.display = 'block';
+        this.ui.showFinishScreen(this.finishTime);
     }
 
     /**
      * Show the game over screen when player crashes
      */
     showGameOverScreen() {
-        const startScreen = document.getElementById('startScreen');
-        if (!startScreen) return;
-
-        const title = startScreen.querySelector('.game-title');
-        const instructions = startScreen.querySelector('.instructions');
-        const prompt = startScreen.querySelector('.start-prompt');
-
-        // Show game over screen overlay
-        startScreen.style.display = 'flex';
-
-        // Update text for game over screen
-        title.textContent = 'YOU CRASHED!';
-        title.classList.remove('countdown');
-        instructions.style.display = 'none';
-        prompt.textContent = 'Press the mouse button to play again';
-        prompt.style.display = 'block';
+        this.ui.showGameOverScreen();
     }
 
     /**
@@ -427,6 +423,7 @@ class Game {
 
             if (this.gameState === GameState.BRIDGE_GROWING) {
                 this.mousePressed = true;
+                this.pressStartTime = performance.now();
                 console.log('Mouse pressed - bridge growing');
             }
         });
@@ -437,9 +434,17 @@ class Game {
             if (e.button !== 0) return;
 
             if (this.gameState === GameState.BRIDGE_GROWING && this.mousePressed) {
-                this.mousePressed = false;
-                this.slamBridge();
-                console.log('Mouse released - bridge slamming at length:', this.bridgeLength);
+                // Check if we're past the input dead zone
+                const pressDuration = (performance.now() - this.pressStartTime) / 1000;
+                if (pressDuration >= GameConfig.bridge.inputDeadZone) {
+                    this.mousePressed = false;
+                    this.slamBridge();
+                    console.log('Mouse released - bridge slamming at length:', this.bridgeLength);
+                } else {
+                    // Released before dead zone - ignore (accidental touch)
+                    this.mousePressed = false;
+                    console.log('Mouse released before dead zone - ignored');
+                }
             }
         });
 
@@ -448,6 +453,7 @@ class Game {
             e.preventDefault();
             if (this.gameState === GameState.BRIDGE_GROWING) {
                 this.mousePressed = true;
+                this.pressStartTime = performance.now();
                 console.log('Touch start - bridge growing');
             }
         });
@@ -455,9 +461,17 @@ class Game {
         this.canvas.addEventListener('touchend', (e) => {
             e.preventDefault();
             if (this.gameState === GameState.BRIDGE_GROWING && this.mousePressed) {
-                this.mousePressed = false;
-                this.slamBridge();
-                console.log('Touch end - bridge slamming at length:', this.bridgeLength);
+                // Check if we're past the input dead zone
+                const pressDuration = (performance.now() - this.pressStartTime) / 1000;
+                if (pressDuration >= GameConfig.bridge.inputDeadZone) {
+                    this.mousePressed = false;
+                    this.slamBridge();
+                    console.log('Touch end - bridge slamming at length:', this.bridgeLength);
+                } else {
+                    // Released before dead zone - ignore (accidental touch)
+                    this.mousePressed = false;
+                    console.log('Touch end before dead zone - ignored');
+                }
             }
         });
     }
@@ -637,21 +651,25 @@ class Game {
             // Instant turn, advance to next segment
             this.startNextSegment();
         } else if (this.gameState === GameState.BRIDGE_GROWING) {
-            // Only grow bridge while mouse is pressed
+            // Only grow bridge while mouse is pressed and past dead zone
             if (this.mousePressed) {
-                const bridgeIndex = this.currentSegment.bridgeIndex;
-                const bridges = this.level.getBridges();
-                const currentBridge = bridges[bridgeIndex];
-                const safeRange = currentBridge.calculateRange(this.islands);
+                // Check if we're past the input dead zone
+                const pressDuration = (performance.now() - this.pressStartTime) / 1000;
+                if (pressDuration >= GameConfig.bridge.inputDeadZone) {
+                    const bridgeIndex = this.currentSegment.bridgeIndex;
+                    const bridges = this.level.getBridges();
+                    const currentBridge = bridges[bridgeIndex];
+                    const safeRange = currentBridge.calculateRange(this.islands);
 
-                // Calculate maximum bridge length: minSafe + 2.0 units
-                const maxBridgeLength = safeRange.minSafe + 2.0;
+                    // Calculate maximum bridge length: minSafe + 2.0 units
+                    const maxBridgeLength = safeRange.minSafe + 2.0;
 
-                this.bridgeLength += GameConfig.bridge.growthRate * deltaTime;
+                    this.bridgeLength += GameConfig.bridge.growthRate * deltaTime;
 
-                // Cap bridge length at maximum (but don't slam until released)
-                if (this.bridgeLength > maxBridgeLength) {
-                    this.bridgeLength = maxBridgeLength;
+                    // Cap bridge length at maximum (but don't slam until released)
+                    if (this.bridgeLength > maxBridgeLength) {
+                        this.bridgeLength = maxBridgeLength;
+                    }
                 }
             }
             // Bridge stays at current length while waiting for player input
@@ -914,7 +932,8 @@ class Game {
             targetIslandIndex: this.targetIslandIndex,
             bridgeIsPositive: this.bridgeIsPositive,
             countdownValue: countdownValue,
-            timer: timerValue
+            timer: timerValue,
+            safeAreaInsets: this.safeAreaInsets
         });
 
         // Delegate all rendering to the renderer

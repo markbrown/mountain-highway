@@ -9,7 +9,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #ffffff;
+    background-color: #000000;
     font-family: 'Ranchers', cursive;
     overflow: hidden; /* Prevent scrollbars */
 }
@@ -22,7 +22,6 @@ body {
 }
 
 #gameCanvas {
-    border: 2px solid #333;
     background-color: #87CEEB;
     display: block;
     /* Canvas element fills the container */

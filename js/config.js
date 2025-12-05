@@ -41,7 +41,8 @@ const GameConfig = {
         slamDuration: 0.2, // Time for bridge to rotate down (seconds)
         color: '#AAAAAA',  // Medium-light gray (same as road)
         baseOffset: 0.1,   // How far bridge starts back onto island edge
-        leeway: 0.3        // Forgiveness distance for slightly short bridges (units)
+        leeway: 0.3,       // Forgiveness distance for slightly short bridges (units)
+        inputDeadZone: 0.05 // Delay before bridge starts growing (seconds) - prevents accidental taps
     },
 
     // Physics

@@ -14,8 +14,9 @@ class Viewport {
      * @param {number} fixedWidth - Optional fixed canvas width (otherwise auto-calculated)
      * @param {number} fixedHeight - Optional fixed canvas height (otherwise auto-calculated)
      * @param {Object} courseBounds - Optional course bounds for clamping {minRow, maxRow, minCol, maxCol}
+     * @param {Object} safeAreaInsets - Optional safe area insets {top, right, bottom, left} in canvas pixels
      */
-    constructor(minRow, maxRow, minCol, maxCol, blockSize = GameConfig.grid.blockSize, fixedWidth = null, fixedHeight = null, courseBounds = null) {
+    constructor(minRow, maxRow, minCol, maxCol, blockSize = GameConfig.grid.blockSize, fixedWidth = null, fixedHeight = null, courseBounds = null, safeAreaInsets = null) {
         this.minRow = minRow;
         this.maxRow = maxRow;
         this.minCol = minCol;
@@ -24,6 +25,7 @@ class Viewport {
         this.fixedWidth = fixedWidth;
         this.fixedHeight = fixedHeight;
         this.courseBounds = courseBounds;
+        this.safeAreaInsets = safeAreaInsets || { top: 0, right: 0, bottom: 0, left: 0 };
 
         // Calculate canvas size needed for this viewport
         this.calculateCanvasSize();
@@ -107,17 +109,19 @@ class Viewport {
             const bottomScreenY = -(bottomRow + bottomCol) / 2;
             const topScreenY = -(topRow + topCol) / 2;
 
-            // Calculate offset constraints:
+            // Calculate offset constraints (accounting for safe area insets):
+            const safeTop = this.safeAreaInsets.top;
+            const safeBottom = this.safeAreaInsets.bottom;
 
-            // 1. Offset when TOP of course is at TOP of canvas (canvasY = 0)
-            // When top is at canvas top: 0 = topScreenY * blockSize + offset
+            // 1. Offset when TOP of course is at TOP of safe area (canvasY = safeTop)
+            // When top is at safe area top: safeTop = topScreenY * blockSize + offset
             // This prevents seeing above the course (upper bound on offset)
-            const offsetTopLocked = -topScreenY * this.blockSize;
+            const offsetTopLocked = safeTop - topScreenY * this.blockSize;
 
-            // 2. Offset when BOTTOM of course is at BOTTOM of canvas
-            // When bottom is at canvas bottom: canvasHeight = bottomScreenY * blockSize + offset
+            // 2. Offset when BOTTOM of course is at BOTTOM of safe area
+            // When bottom is at safe area bottom: (canvasHeight - safeBottom) = bottomScreenY * blockSize + offset
             // This prevents seeing below the course (lower bound on offset - STRONGER)
-            const offsetBottomLocked = this.canvasHeight - bottomScreenY * this.blockSize;
+            const offsetBottomLocked = (this.canvasHeight - safeBottom) - bottomScreenY * this.blockSize;
 
             // 3. Offset that centers the car vertically
             let offsetCentered;
@@ -359,8 +363,12 @@ class Renderer {
             ctx.restore();
         }
 
-        // Render timer (top right during gameplay)
+        // Render timer (top right during gameplay, respecting safe area)
         if (context.canvasUI.timer !== null) {
+            const insets = context.canvasUI.safeAreaInsets;
+            const timerX = canvasWidth - 20 - insets.right;
+            const timerY = 20 + insets.top;
+
             ctx.save();
             ctx.font = '48px Ranchers';
             ctx.fillStyle = 'white';
@@ -368,8 +376,8 @@ class Renderer {
             ctx.lineWidth = 3;
             ctx.textAlign = 'right';
             ctx.textBaseline = 'top';
-            ctx.strokeText(context.canvasUI.timer, canvasWidth - 20, 20);
-            ctx.fillText(context.canvasUI.timer, canvasWidth - 20, 20);
+            ctx.strokeText(context.canvasUI.timer, timerX, timerY);
+            ctx.fillText(context.canvasUI.timer, timerX, timerY);
             ctx.restore();
         }
     }
