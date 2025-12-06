@@ -302,9 +302,9 @@ When the bridge slam animation completes, the game evaluates the bridge length a
 **Safe Range Definition:**
 
 - **Minimum safe length**: gap - leeway (0.3 units forgiveness for slightly short bridges)
-- **Maximum safe length**: depends on junction type:
-  - **Turns**: gap + 1.5 units (car must not overshoot the turn)
-  - **Straight or end**: no effective limit (bridge can be any length past minimum)
+- **Maximum safe length**: depends on whether there's an immediate corner:
+  - **Immediate corner** (turn 1 unit past entry edge): gap + 1.5 units (car must not overshoot)
+  - **Otherwise**: no effective limit (bridge can be any length past minimum)
 
 **Visual Feedback:**
 - Only the vertical bridge length is shown during growth
@@ -610,9 +610,9 @@ Debug utilities are separated into `js/debug.js` and render as overlays on top o
 - The green-outlined region shows valid bridge lengths that will correctly reach the next island
 - Calculations based on `CourseValidator.calculateBridgeRange()`:
   - **Minimum safe**: gap distance (must reach entry edge of next island)
-  - **Maximum safe**: Depends on junction type:
-    - **Turn junction**: gap + 1.5 units
-    - **Straight junction or end of course**: no effective limit
+  - **Maximum safe**: Depends on whether there's an immediate corner:
+    - **Immediate corner** (turn 1 unit past entry edge): gap + 1.5 units
+    - **Otherwise**: no effective limit
 - Toggle via `showBridgeZones` flag in game.js (disabled by default in game)
 - Always enabled in test suite for validation verification
 - Rendered using `Renderer.drawRoad()` for filled areas and `Renderer.drawRoadOutline()` for safe zone boundaries

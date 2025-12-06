@@ -145,9 +145,10 @@ class CourseValidator {
             // Minimum: must reach entry edge of next island (the gap)
             minSafe = Math.abs(entryEdge - exitEdge);
 
-            // Maximum: for turns, gap + 1.5; for straights/ends, no effective limit
-            const isTurn = (junctionType === JunctionType.TURN);
-            maxSafe = isTurn ? (minSafe + 1.5) : (minSafe + 10.0);
+            // Maximum: only limited if there's an immediate corner (turn 1 unit past entry edge)
+            const distanceToJunction = Math.abs(spanEnd.col - entryEdge);
+            const isImmediateCorner = (junctionType === JunctionType.TURN) && (distanceToJunction === 1);
+            maxSafe = isImmediateCorner ? (minSafe + 1.5) : (minSafe + 10.0);
         } else {
             // Bridge extends in row direction
             const [startRow, startCol, startWidth, startHeight] = startIsland;
@@ -169,9 +170,10 @@ class CourseValidator {
             // Minimum: must reach entry edge of next island (the gap)
             minSafe = Math.abs(entryEdge - exitEdge);
 
-            // Maximum: for turns, gap + 1.5; for straights/ends, no effective limit
-            const isTurn = (junctionType === JunctionType.TURN);
-            maxSafe = isTurn ? (minSafe + 1.5) : (minSafe + 10.0);
+            // Maximum: only limited if there's an immediate corner (turn 1 unit past entry edge)
+            const distanceToJunction = Math.abs(spanEnd.row - entryEdge);
+            const isImmediateCorner = (junctionType === JunctionType.TURN) && (distanceToJunction === 1);
+            maxSafe = isImmediateCorner ? (minSafe + 1.5) : (minSafe + 10.0);
         }
 
         return { minSafe, maxSafe, needsBridge: true };
