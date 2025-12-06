@@ -136,6 +136,7 @@ class Game {
         this.carZOffset = 0;          // Vertical offset when falling (negative = down)
         this.carFallVelocity = 0;     // Current falling velocity
         this.carTumbleRotation = 0;   // Rotation angle while tumbling
+        this.tumbleDirection = 1;     // +1 for right, -1 for left (row+ or col-)
         this.targetIslandIndex = -1;  // Island index for rendering order
         this.bridgeIsPositive = true; // Direction sign of bridge when falling
         this.fallTimer = 0;           // Time elapsed since car started falling
@@ -457,6 +458,7 @@ class Game {
         this.carZOffset = 0;
         this.carFallVelocity = 0;
         this.carTumbleRotation = 0;
+        this.tumbleDirection = 1;
         this.fallPoint = null;
         this.fallTimer = 0;
 
@@ -492,6 +494,7 @@ class Game {
         this.carZOffset = 0;
         this.carFallVelocity = 0;
         this.carTumbleRotation = 0;
+        this.tumbleDirection = 1;
         this.fallPoint = null;
         this.fallTimer = 0;
 
@@ -631,7 +634,7 @@ class Game {
             // Continue falling physics so car disappears off screen
             this.carFallVelocity += GameConfig.physics.gravity * deltaTime;
             this.carZOffset += this.carFallVelocity * deltaTime;
-            this.carTumbleRotation += GameConfig.physics.tumbleRate * deltaTime;
+            this.carTumbleRotation += GameConfig.physics.tumbleRate * this.tumbleDirection * deltaTime;
 
             this.updateViewport();
             this.render();
@@ -813,7 +816,7 @@ class Game {
             // Apply gravity and tumble rotation
             this.carFallVelocity += GameConfig.physics.gravity * deltaTime;
             this.carZOffset += this.carFallVelocity * deltaTime;
-            this.carTumbleRotation += GameConfig.physics.tumbleRate * deltaTime;
+            this.carTumbleRotation += GameConfig.physics.tumbleRate * this.tumbleDirection * deltaTime;
 
             // Track how long car has been falling
             this.fallTimer += deltaTime;
@@ -939,6 +942,9 @@ class Game {
 
             this.targetIslandIndex = currentBridge.endIsland;
             this.bridgeIsPositive = pos.isPositive;
+            // Tumble direction: -1 when travelling left (row+ or col-)
+            const travellingLeft = (pos.direction === 'row' && sign > 0) || (pos.direction === 'column' && sign < 0);
+            this.tumbleDirection = travellingLeft ? -1 : 1;
             this.gameState = GameState.DOOMED;
 
         } else if (this.bridgeLength <= safeRange.maxSafe) {
@@ -991,6 +997,9 @@ class Game {
                     // IMPORTANT: Rendering reversal for too-long falls
                     // Car falls off far side, so reverse the rendering order
                     this.bridgeIsPositive = !pos.isPositive;
+                    // Tumble direction: -1 when travelling left (row+ or col-)
+                    const travellingLeft = (pos.direction === 'row' && sign > 0) || (pos.direction === 'column' && sign < 0);
+                    this.tumbleDirection = travellingLeft ? -1 : 1;
                     this.gameState = GameState.DOOMED;
                 } else {
                     // Bridge extends past junction but not enough to miss turn
