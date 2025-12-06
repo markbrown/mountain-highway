@@ -380,6 +380,44 @@ class Renderer {
             ctx.fillText(context.canvasUI.timer, timerX, timerY);
             ctx.restore();
         }
+
+        // Render progress bar (vertical bar on right side during gameplay)
+        if (context.canvasUI.timer !== null) {
+            const insets = context.canvasUI.safeAreaInsets;
+            const barWidth = 8;
+            const barMargin = 20;
+            const barX = canvasWidth - barMargin - barWidth - insets.right;
+            const barHeight = canvasHeight / 2;
+            const barTop = (canvasHeight - barHeight) / 2; // Centered vertically
+
+            // Background track
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.roundRect(barX, barTop, barWidth, barHeight, barWidth / 2);
+            ctx.fill();
+
+            // Progress fill (fills from bottom to top)
+            const progress = Math.min(1, Math.max(0, context.canvasUI.progress));
+            const fillHeight = barHeight * progress;
+            const barBottom = barTop + barHeight;
+            if (fillHeight > 0) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.beginPath();
+                ctx.roundRect(barX, barBottom - fillHeight, barWidth, fillHeight, barWidth / 2);
+                ctx.fill();
+            }
+
+            // Red dot at progress point (matches car color)
+            const dotRadius = 6;
+            const dotY = barBottom - fillHeight;
+            ctx.fillStyle = '#cc0000';
+            ctx.beginPath();
+            ctx.arc(barX + barWidth / 2, dotY, dotRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
     }
 
     /**

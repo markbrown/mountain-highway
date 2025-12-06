@@ -62,6 +62,7 @@ class RenderContext {
         this.canvasUI = {
             countdownValue: options.countdownValue || null,
             timer: options.timer || null,
+            progress: options.progress || 0,
             safeAreaInsets: options.safeAreaInsets || { top: 0, right: 0, bottom: 0, left: 0 }
         };
     }
@@ -105,6 +106,10 @@ class Game {
         this.pathSegments = this.course.getPathSegments(this.islands);
         this.currentSegmentIndex = 0;
         this.currentSegment = null;
+
+        // Distance tracking for progress bar
+        this.totalPathLength = this.calculateTotalPathLength();
+        this.distanceTraveled = 0;
 
         // Bridge data - calculated from level
         this.bridgeSequence = this.level.getBridgeAnimationData();
@@ -235,6 +240,52 @@ class Game {
             minCol: minCol - 1,
             maxCol: maxCol + 1
         };
+    }
+
+    /**
+     * Calculate total path length from all drive segments
+     * @returns {number} Total distance the car will travel
+     */
+    calculateTotalPathLength() {
+        let total = 0;
+        for (const segment of this.pathSegments) {
+            if (segment.type === 'drive') {
+                // Calculate distance for this drive segment
+                const rowDist = Math.abs(segment.endRow - segment.startRow);
+                const colDist = Math.abs(segment.endCol - segment.startCol);
+                total += rowDist + colDist; // One will be 0 since we move in one direction
+            }
+        }
+        return total;
+    }
+
+    /**
+     * Calculate distance traveled based on completed segments and current position
+     * @returns {number} Distance traveled so far
+     */
+    calculateDistanceTraveled() {
+        let distance = 0;
+
+        // Add distance from completed segments
+        for (let i = 0; i < this.currentSegmentIndex - 1; i++) {
+            const segment = this.pathSegments[i];
+            if (segment.type === 'drive') {
+                const rowDist = Math.abs(segment.endRow - segment.startRow);
+                const colDist = Math.abs(segment.endCol - segment.startCol);
+                distance += rowDist + colDist;
+            }
+        }
+
+        // Add distance within current segment (if it's a drive segment)
+        if (this.currentSegment && this.currentSegment.type === 'drive') {
+            if (this.currentSegment.direction === 'column') {
+                distance += Math.abs(this.carCol - this.currentSegment.startCol);
+            } else {
+                distance += Math.abs(this.carRow - this.currentSegment.startRow);
+            }
+        }
+
+        return distance;
     }
 
     /**
@@ -956,6 +1007,11 @@ class Game {
             timerValue = Math.floor(this.gameTimer) + 's';
         }
 
+        // Calculate progress (0 to 1)
+        const progress = this.totalPathLength > 0
+            ? this.calculateDistanceTraveled() / this.totalPathLength
+            : 0;
+
         // Create rendering context with all game state
         const context = new RenderContext({
             gameState: this.gameState,
@@ -980,6 +1036,7 @@ class Game {
             bridgeIsPositive: this.bridgeIsPositive,
             countdownValue: countdownValue,
             timer: timerValue,
+            progress: progress,
             safeAreaInsets: this.safeAreaInsets
         });
 
