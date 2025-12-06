@@ -218,7 +218,7 @@ The `Viewport` class manages what portion of the game world is visible:
 ## Controls
 
 - **Mouse button**: Click and hold anywhere on screen to grow bridge
-  - Bridge grows at constant rate (2 units per second)
+  - Bridge grows at constant rate (4 units per second)
   - Bridge displays vertically while growing so player can judge length
   - Release to stop growth and drop bridge to horizontal position
   - No cancel option - once released, outcome is determined
@@ -230,7 +230,7 @@ The `Viewport` class manages what portion of the game world is visible:
 2. Car travels forward at constant speed along the road
 3. Car stops when front bumper reaches just before the island edge
 4. Player clicks and holds mouse button to grow bridge
-5. Bridge grows vertically from island edge at 2 units/second
+5. Bridge grows vertically from island edge at 4 units/second
 6. Player releases mouse button when bridge appears correct length
 7. Bridge rotates down to horizontal with quick "slamming" animation
 8. Car drives forward onto bridge and continues
@@ -244,24 +244,20 @@ The `Viewport` class manages what portion of the game world is visible:
 - Bridge color: Same dark gray as road (#444444)
 - No border lines on bridge - blends seamlessly with road when horizontal
 - Grows from the exact edge of the island along the road centerline
-- Growth rate: 2 units per second (configurable via `GameConfig.bridge.growthRate`)
+- Growth rate: 4 units per second (configurable via `GameConfig.bridge.growthRate`)
 - Minimum length: 0 (instant click/release)
-- Maximum length: `minSafe + 2.0` units (capped during growth)
+- Maximum length: gap + 1.75 units (capped during growth)
   - Bridge stops growing at maximum even if button held
   - Bridge stays vertical until released (holding past maximum only costs time)
-  - Maximum ensures bridge never extends past opposite edge of target island
-- **Target length**: Gap distance + 0.5 units (extends onto next island for smooth transition)
-- **Animation timing**: Hold time = target length / growth rate
-  - Example: 2.5 unit bridge at 2 units/sec = 1.25 second hold time
 - While growing: displayed as vertical rectangle (rotated 90°)
 - When released: quick animation rotating down to horizontal (0.2 seconds)
 
 **Bridge Rendering:**
 - Vertical bridge: Rectangle extending upward from island edge
 - Rotation animation: Bridge pivots from base edge where it attaches to road
-- Horizontal bridge: Extends 0.1 units back onto start island and 0.1 units onto end island
-  - This covers the edge lines on both islands for seamless road appearance
-  - Rendered length = actual bridge length + 2 × baseOffset (0.2 units total extension)
+- Horizontal bridge rendering depends on outcome:
+  - **Safe bridge**: Rendered at gap size + 0.1 units at each end (covers edge lines on both islands)
+  - **Unsafe bridge**: Rendered at actual grown length + 0.1 units at start only
 - Edge line behavior:
   - While bridge is vertical/rotating: Black edge line redrawn on top of bridge
   - When bridge is horizontal: Edge lines are covered by bridge extensions
@@ -305,15 +301,10 @@ When the bridge slam animation completes, the game evaluates the bridge length a
 
 **Safe Range Definition:**
 
-For **straight-ahead junctions** (column→column or row→row):
-- Minimum: Bridge must reach near edge of next island (gap distance)
-- Maximum: Bridge must not extend past far edge of next island
-- Acceptable range: [gap distance, gap distance + island depth]
-
-For **turns** (left or right):
-- Minimum: Bridge must reach near edge of next island (gap distance)
-- Maximum: Bridge must not extend past junction point
-- Acceptable range: [gap distance, gap distance + distance to junction]
+- **Minimum safe length**: gap - leeway (0.3 units forgiveness for slightly short bridges)
+- **Maximum safe length**: depends on junction type:
+  - **Turns**: gap + 1.5 units (car must not overshoot the turn)
+  - **Straight or end**: no effective limit (bridge can be any length past minimum)
 
 **Visual Feedback:**
 - Only the vertical bridge length is shown during growth
@@ -356,7 +347,7 @@ For **turns** (left or right):
 - Front bumper extends 0.5 units ahead of car center (half car length)
 
 **Car Behavior:**
-- Speed: 2 units per second (constant)
+- Speed: 4 units per second (constant)
 - Movement: Automatic forward movement along road
 - Steering: Player does not control - car follows course path automatically
 - Turns: Instantaneous direction change at junction points
@@ -618,11 +609,10 @@ Debug utilities are separated into `js/debug.js` and render as overlays on top o
 - The white-only region (if visible) indicates bridge lengths that are too short
 - The green-outlined region shows valid bridge lengths that will correctly reach the next island
 - Calculations based on `CourseValidator.calculateBridgeRange()`:
-  - **Minimum safe**: Must reach entry edge of next island (gap distance)
-  - **Maximum safe**: Depends on junction type at the bridge end:
-    - **Turn junction** (left/right): Can extend 0.5 units past junction
-    - **Straight junction or end of course**: Can extend 1.0 unit past junction
-    - Rationale: Straight junctions need more overlap for visual continuity
+  - **Minimum safe**: gap distance (must reach entry edge of next island)
+  - **Maximum safe**: Depends on junction type:
+    - **Turn junction**: gap + 1.5 units
+    - **Straight junction or end of course**: no effective limit
 - Toggle via `showBridgeZones` flag in game.js (disabled by default in game)
 - Always enabled in test suite for validation verification
 - Rendered using `Renderer.drawRoad()` for filled areas and `Renderer.drawRoadOutline()` for safe zone boundaries

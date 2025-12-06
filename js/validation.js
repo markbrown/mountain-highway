@@ -142,30 +142,12 @@ class CourseValidator {
                 entryEdge = endCol + endWidth;
             }
 
-            // Minimum: must reach entry edge of next island (always positive)
+            // Minimum: must reach entry edge of next island (the gap)
             minSafe = Math.abs(entryEdge - exitEdge);
 
-            // Maximum: depends on junction type
-            const isStraightOrEnd = (junctionType === JunctionType.STRAIGHT || junctionType === null);
-            const extensionPast = isStraightOrEnd ? 1.0 : 0.5;
-
-            if (isPositive) {
-                if (spanEnd.col === entryEdge) {
-                    // Junction at entry edge - can extend across entire island
-                    maxSafe = (endCol + endWidth) - exitEdge;
-                } else {
-                    // Junction inside island - max extends past junction
-                    maxSafe = (spanEnd.col + extensionPast) - exitEdge;
-                }
-            } else {
-                if (spanEnd.col === entryEdge - endWidth) {
-                    // Junction at entry edge - can extend across entire island
-                    maxSafe = exitEdge - endCol;
-                } else {
-                    // Junction inside island - max extends past junction
-                    maxSafe = exitEdge - (spanEnd.col - extensionPast);
-                }
-            }
+            // Maximum: for turns, gap + 1.5; for straights/ends, no effective limit
+            const isTurn = (junctionType === JunctionType.TURN);
+            maxSafe = isTurn ? (minSafe + 1.5) : (minSafe + 10.0);
         } else {
             // Bridge extends in row direction
             const [startRow, startCol, startWidth, startHeight] = startIsland;
@@ -184,26 +166,12 @@ class CourseValidator {
                 entryEdge = endRow + endHeight;
             }
 
-            // Minimum: must reach entry edge of next island (always positive)
+            // Minimum: must reach entry edge of next island (the gap)
             minSafe = Math.abs(entryEdge - exitEdge);
 
-            // Maximum: depends on junction type
-            const isStraightOrEnd = (junctionType === JunctionType.STRAIGHT || junctionType === null);
-            const extensionPast = isStraightOrEnd ? 1.0 : 0.5;
-
-            if (isPositive) {
-                if (spanEnd.row === entryEdge) {
-                    maxSafe = (endRow + endHeight) - exitEdge;
-                } else {
-                    maxSafe = (spanEnd.row + extensionPast) - exitEdge;
-                }
-            } else {
-                if (spanEnd.row === entryEdge - endHeight) {
-                    maxSafe = exitEdge - endRow;
-                } else {
-                    maxSafe = exitEdge - (spanEnd.row - extensionPast);
-                }
-            }
+            // Maximum: for turns, gap + 1.5; for straights/ends, no effective limit
+            const isTurn = (junctionType === JunctionType.TURN);
+            maxSafe = isTurn ? (minSafe + 1.5) : (minSafe + 10.0);
         }
 
         return { minSafe, maxSafe, needsBridge: true };

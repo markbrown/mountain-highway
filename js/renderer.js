@@ -278,11 +278,11 @@ class Renderer {
             const islandIndex = sortedIndices[i];
             const [row, col, width, height] = context.islands[islandIndex];
 
-            // For negative direction bridges, render car BEFORE target island
+            // Car behind target island: render car BEFORE island (island overlaps car)
             if (context.car.shouldRender &&
                 context.car.isFalling &&
                 islandIndex === context.fallingCarRender.targetIslandIndex &&
-                !context.fallingCarRender.bridgeIsPositive) {
+                !context.fallingCarRender.carInFrontOfTarget) {
                 this.renderFallingCar(context.car, blockSize);
             }
 
@@ -296,11 +296,20 @@ class Renderer {
             // Step 3: Draw island outlines (black lines)
             this.drawIslandOutlines(corners);
 
-            // For positive direction bridges, render car AFTER target island
+            // Short bridge: render after source island outlines (bridge extends into gap)
+            if (context.fallingCarRender.bridgeTooShort &&
+                islandIndex === context.fallingCarRender.sourceIslandIndex &&
+                (context.gameState === GameState.DOOMED ||
+                 context.gameState === GameState.FALLING ||
+                 context.gameState === GameState.GAME_OVER)) {
+                this.renderShortBridge(context, blockSize);
+            }
+
+            // Car in front of target island: render car AFTER island (car overlaps island)
             if (context.car.shouldRender &&
                 context.car.isFalling &&
                 islandIndex === context.fallingCarRender.targetIslandIndex &&
-                context.fallingCarRender.bridgeIsPositive) {
+                context.fallingCarRender.carInFrontOfTarget) {
                 this.renderFallingCar(context.car, blockSize);
             }
         }
@@ -449,6 +458,33 @@ class Renderer {
     }
 
     /**
+     * Render a too-short bridge in the island loop for proper depth ordering
+     * @param {RenderContext} context - Rendering context
+     * @param {number} blockSize - Block size in pixels
+     */
+    renderShortBridge(context, blockSize) {
+        const segment = context.bridge.currentSegment;
+        if (!segment || segment.type !== 'bridge') return;
+
+        const baseOffset = GameConfig.bridge.baseOffset;
+        const bridgeIndex = segment.bridgeIndex;
+        const pos = context.bridgePositions[bridgeIndex];
+        const bridgeData = context.bridgeSequence[bridgeIndex];
+
+        // Draw as a completed (horizontal) bridge
+        // targetLength already includes baseOffset adjustment (set in evaluateBridgeOutcome)
+        if (pos.direction === 'column') {
+            const offsetCol = pos.isPositive ? (pos.edgeCol - baseOffset) : (pos.edgeCol + baseOffset);
+            const bridgeLength = pos.isPositive ? bridgeData.targetLength : -bridgeData.targetLength;
+            this.drawHorizontalBridge(pos.baseRow, offsetCol, pos.direction, bridgeLength, blockSize);
+        } else {
+            const offsetRow = pos.isPositive ? (pos.edgeRow - baseOffset) : (pos.edgeRow + baseOffset);
+            const bridgeLength = pos.isPositive ? bridgeData.targetLength : -bridgeData.targetLength;
+            this.drawHorizontalBridge(offsetRow, pos.baseCol, pos.direction, bridgeLength, blockSize);
+        }
+    }
+
+    /**
      * Helper function to draw a single bridge segment
      * @param {Object} segment - Path segment
      * @param {number} idx - Segment index
@@ -488,16 +524,14 @@ class Renderer {
             }
         } else if (isCompleted) {
             // Draw completed bridge (horizontal)
-            // Base offset and length direction depend on bridge direction
-            // Bridge extends baseOffset back onto start island (covers edge line)
-            // and baseOffset onto end island (covers edge line)
+            // targetLength already includes baseOffset adjustments (set in evaluateBridgeOutcome)
             if (pos.direction === 'column') {
                 const offsetCol = pos.isPositive ? (pos.edgeCol - baseOffset) : (pos.edgeCol + baseOffset);
-                const bridgeLength = pos.isPositive ? (bridgeData.targetLength + 2 * baseOffset) : -(bridgeData.targetLength + 2 * baseOffset);
+                const bridgeLength = pos.isPositive ? bridgeData.targetLength : -bridgeData.targetLength;
                 this.drawHorizontalBridge(pos.baseRow, offsetCol, pos.direction, bridgeLength, blockSize);
             } else {
                 const offsetRow = pos.isPositive ? (pos.edgeRow - baseOffset) : (pos.edgeRow + baseOffset);
-                const bridgeLength = pos.isPositive ? (bridgeData.targetLength + 2 * baseOffset) : -(bridgeData.targetLength + 2 * baseOffset);
+                const bridgeLength = pos.isPositive ? bridgeData.targetLength : -bridgeData.targetLength;
                 this.drawHorizontalBridge(offsetRow, pos.baseCol, pos.direction, bridgeLength, blockSize);
             }
         }
@@ -510,12 +544,21 @@ class Renderer {
      * @param {number} blockSize - Block size in pixels
      */
     renderCompletedBridges(context, blockSize) {
+        // Check if a short bridge is being rendered in the island loop
+        const isShortBridge = context.fallingCarRender.bridgeTooShort &&
+            (context.gameState === GameState.DOOMED ||
+             context.gameState === GameState.FALLING ||
+             context.gameState === GameState.GAME_OVER);
+
         context.pathSegments.forEach((segment, idx) => {
             if (segment.type !== 'bridge') return;
 
             const isCurrentBridge = (context.bridge.currentSegment === segment &&
                                      (context.gameState === GameState.BRIDGE_GROWING ||
                                       context.gameState === GameState.BRIDGE_SLAMMING));
+
+            // Skip if this is the short bridge (rendered in island loop)
+            if (isShortBridge && context.bridge.currentSegment === segment) return;
 
             // Draw if it's completed (not currently animating)
             if (!isCurrentBridge) {

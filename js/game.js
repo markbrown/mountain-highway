@@ -54,8 +54,10 @@ class RenderContext {
 
         // Falling car rendering (when car has fallen off)
         this.fallingCarRender = {
+            sourceIslandIndex: options.sourceIslandIndex,
             targetIslandIndex: options.targetIslandIndex,
-            bridgeIsPositive: options.bridgeIsPositive
+            carInFrontOfTarget: options.carInFrontOfTarget,
+            bridgeTooShort: options.bridgeTooShort
         };
 
         // Canvas-rendered UI elements (countdown and timer)
@@ -137,8 +139,10 @@ class Game {
         this.carFallVelocity = 0;     // Current falling velocity
         this.carTumbleRotation = 0;   // Rotation angle while tumbling
         this.tumbleDirection = 1;     // +1 for right, -1 for left (row+ or col-)
-        this.targetIslandIndex = -1;  // Island index for rendering order
-        this.bridgeIsPositive = true; // Direction sign of bridge when falling
+        this.sourceIslandIndex = -1;  // Island where the bridge starts (for rendering)
+        this.targetIslandIndex = -1;  // Island where the bridge ends (for rendering)
+        this.carInFrontOfTarget = true; // Whether falling car renders in front of target island
+        this.bridgeTooShort = false;  // Whether the doomed bridge was too short (vs too long)
         this.fallTimer = 0;           // Time elapsed since car started falling
 
         // Timer state
@@ -785,8 +789,8 @@ class Game {
                     const currentBridge = bridges[bridgeIndex];
                     const safeRange = currentBridge.calculateRange(this.islands);
 
-                    // Calculate maximum bridge length: minSafe + 2.0 units
-                    const maxBridgeLength = safeRange.minSafe + 2.0;
+                    // Maximum bridge length: gap + 1.75 units
+                    const maxBridgeLength = safeRange.minSafe + 1.75;
 
                     this.bridgeLength += GameConfig.bridge.growthRate * deltaTime;
 
@@ -897,12 +901,9 @@ class Game {
         if (this.bridgeLength >= safeRange.minSafe - leeway && this.bridgeLength < safeRange.minSafe) {
             console.log('Bridge slightly short - applying forgiveness (extending to minimum)');
             this.bridgeLength = safeRange.minSafe;
-            // Update bridge data so rendering uses the extended length
-            this.bridgeSequence[bridgeIndex].targetLength = safeRange.minSafe;
         }
 
-        // Update bridge data with final length
-        this.bridgeSequence[bridgeIndex].targetLength = this.bridgeLength;
+        // Note: targetLength is set in evaluateBridgeOutcome() after slam completes
 
         // Start slam animation
         this.gameState = GameState.BRIDGE_SLAMMING;
@@ -940,16 +941,22 @@ class Game {
                 this.targetPosition = this.fallPoint.row;
             }
 
+            this.sourceIslandIndex = currentBridge.startIsland;
             this.targetIslandIndex = currentBridge.endIsland;
-            this.bridgeIsPositive = pos.isPositive;
+            this.carInFrontOfTarget = pos.isPositive;
+            this.bridgeTooShort = true;
             // Tumble direction: -1 when travelling left (row+ or col-)
             const travellingLeft = (pos.direction === 'row' && sign > 0) || (pos.direction === 'column' && sign < 0);
             this.tumbleDirection = travellingLeft ? -1 : 1;
+            // Set rendered length: actual length + baseOffset (only at start)
+            this.bridgeSequence[bridgeIndex].targetLength = this.bridgeLength + GameConfig.bridge.baseOffset;
             this.gameState = GameState.DOOMED;
 
         } else if (this.bridgeLength <= safeRange.maxSafe) {
             // Bridge is safe - continue normal gameplay
             console.log('Bridge safe! Length:', this.bridgeLength, 'Range:', safeRange.minSafe, '-', safeRange.maxSafe);
+            // Set rendered length: gap + baseOffset at each end (covers edge lines)
+            this.bridgeSequence[bridgeIndex].targetLength = safeRange.minSafe + 2 * GameConfig.bridge.baseOffset;
             this.startNextSegment();
 
         } else {
@@ -959,6 +966,8 @@ class Game {
             if (currentBridge.junctionType === null || currentBridge.junctionType !== 'turn') {
                 // No turn to miss - car continues safely (just costs time)
                 console.log('Bridge too long but no turn to miss - safe');
+                // Set rendered length: gap + baseOffset at each end (covers edge lines)
+                this.bridgeSequence[bridgeIndex].targetLength = safeRange.minSafe + 2 * GameConfig.bridge.baseOffset;
                 this.startNextSegment();
             } else {
                 // Turn junction - check if car misses the turn
@@ -993,17 +1002,22 @@ class Game {
                         this.targetPosition = this.fallPoint.row;
                     }
 
+                    this.sourceIslandIndex = currentBridge.startIsland;
                     this.targetIslandIndex = currentBridge.endIsland;
-                    // IMPORTANT: Rendering reversal for too-long falls
-                    // Car falls off far side, so reverse the rendering order
-                    this.bridgeIsPositive = !pos.isPositive;
+                    // Car falls off far side of target island, so it's behind the target
+                    this.carInFrontOfTarget = !pos.isPositive;
+                    this.bridgeTooShort = false;
                     // Tumble direction: -1 when travelling left (row+ or col-)
                     const travellingLeft = (pos.direction === 'row' && sign > 0) || (pos.direction === 'column' && sign < 0);
                     this.tumbleDirection = travellingLeft ? -1 : 1;
+                    // Set rendered length: actual length + baseOffset (only at start)
+                    this.bridgeSequence[bridgeIndex].targetLength = this.bridgeLength + GameConfig.bridge.baseOffset;
                     this.gameState = GameState.DOOMED;
                 } else {
                     // Bridge extends past junction but not enough to miss turn
                     console.log('Bridge slightly too long but car makes the turn');
+                    // Set rendered length: gap + baseOffset at each end (covers edge lines)
+                    this.bridgeSequence[bridgeIndex].targetLength = safeRange.minSafe + 2 * GameConfig.bridge.baseOffset;
                     this.startNextSegment();
                 }
             }
@@ -1064,8 +1078,10 @@ class Game {
             pathSegments: this.pathSegments,
             bridgePositions: this.bridgePositions,
             bridgeSequence: this.bridgeSequence,
+            sourceIslandIndex: this.sourceIslandIndex,
             targetIslandIndex: this.targetIslandIndex,
-            bridgeIsPositive: this.bridgeIsPositive,
+            carInFrontOfTarget: this.carInFrontOfTarget,
+            bridgeTooShort: this.bridgeTooShort,
             countdownValue: countdownValue,
             timer: timerValue,
             progress: progress,
