@@ -79,6 +79,73 @@ body {
     font-family: 'Ranchers', cursive;
 }
 
+/* High score table */
+.high-scores {
+    margin-top: 16px;
+}
+
+.high-scores-title {
+    font-size: 0.9em;
+    opacity: 0.8;
+    margin-bottom: 12px;
+}
+
+.high-scores-table {
+    border-collapse: collapse;
+    margin: 0 auto;
+}
+
+.high-scores-table td {
+    text-align: center;
+    padding: 0 20px;
+    font-family: 'Ranchers', cursive;
+}
+
+.high-scores-table .rank {
+    display: block;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.high-scores-table .time {
+    display: block;
+    font-size: 1.2em;
+}
+
+.high-scores-table td.highlighted {
+    color: #ffdd44;
+    text-shadow: 0 0 8px rgba(255, 221, 68, 0.6);
+}
+
+.high-score-entry.player-time {
+    margin-top: 16px;
+    opacity: 0.7;
+    font-size: 1em;
+    font-family: 'Ranchers', cursive;
+}
+
+.clear-scores-btn {
+    margin-top: 16px;
+    padding: 8px 16px 4px;
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 0.8em;
+    color: white;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: background 0.2s;
+}
+
+.clear-scores-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.clear-scores-btn:active {
+    background: rgba(255, 255, 255, 0.35);
+}
+
 .start-prompt {
     font-family: 'Luckiest Guy', cursive;
     font-size: 2em;

@@ -151,6 +151,12 @@ class Game {
         // Set up back button callback
         this.ui.onBackPressed = () => this.goToStartScreen();
 
+        // High score manager
+        this.highScoreManager = new HighScoreManager();
+
+        // Set up clear scores callback
+        this.ui.onClearScores = () => this.clearHighScores();
+
         // Safe area insets for iOS notch/Dynamic Island support
         this.safeAreaInsets = { top: 0, right: 0, bottom: 0, left: 0 };
         this.updateSafeAreaInsets();
@@ -398,14 +404,31 @@ class Game {
      * Show the finish screen when player completes the course
      */
     showFinishScreen() {
-        this.ui.showFinishScreen(this.finishTime);
+        // Submit score and get result
+        const result = this.highScoreManager.submitScore(this.finishTime);
+        this.ui.showFinishScreen(this.finishTime, result.rank, result.scores);
     }
 
     /**
      * Show the game over screen when player crashes
      */
     showGameOverScreen() {
-        this.ui.showGameOverScreen();
+        const highScores = this.highScoreManager.getScores();
+        this.ui.showGameOverScreen(highScores);
+    }
+
+    /**
+     * Clear all high scores and refresh the display
+     */
+    clearHighScores() {
+        this.highScoreManager.clearScores();
+
+        // Refresh the current screen to show empty state
+        if (this.gameState === GameState.FINISH) {
+            this.ui.showFinishScreen(this.finishTime, null, []);
+        } else if (this.gameState === GameState.GAME_OVER) {
+            this.ui.showGameOverScreen([]);
+        }
     }
 
     /**

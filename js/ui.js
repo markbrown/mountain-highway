@@ -20,6 +20,9 @@ class UIManager {
         // Callback for when back button is pressed
         this.onBackPressed = null;
 
+        // Callback for when clear scores button is pressed
+        this.onClearScores = null;
+
         // Set initial text based on input device
         this.updateTextForDevice();
 
@@ -99,14 +102,17 @@ class UIManager {
     /**
      * Show the finish screen when player completes the course
      * @param {number} finishTime - The time in seconds
+     * @param {number|null} rank - The player's rank (1-3) if they made the high score list, null otherwise
+     * @param {number[]} highScores - Array of high scores to display
      */
-    showFinishScreen(finishTime) {
+    showFinishScreen(finishTime, rank = null, highScores = []) {
         if (!this.overlay) return;
 
         this.overlay.style.display = 'flex';
         this.title.textContent = 'YOU MADE IT!';
         this.title.classList.remove('countdown');
-        this.instructions.innerHTML = `<p class="finish-time">Time: ${finishTime.toFixed(1)}s</p>`;
+
+        this.instructions.innerHTML = this.formatHighScoreTable(highScores, rank, finishTime);
         this.instructions.style.display = 'block';
         this.prompt.textContent = this.getPlayAgainText();
         this.prompt.style.display = 'block';
@@ -114,16 +120,86 @@ class UIManager {
 
     /**
      * Show the game over screen when player crashes
+     * @param {number[]} highScores - Array of high scores to display
      */
-    showGameOverScreen() {
+    showGameOverScreen(highScores = []) {
         if (!this.overlay) return;
 
         this.overlay.style.display = 'flex';
         this.title.textContent = 'YOU CRASHED!';
         this.title.classList.remove('countdown');
-        this.instructions.style.display = 'none';
+
+        if (highScores.length > 0) {
+            this.instructions.innerHTML = this.formatHighScoreTable(highScores);
+            this.instructions.style.display = 'block';
+        } else {
+            this.instructions.style.display = 'none';
+        }
+
         this.prompt.textContent = this.getPlayAgainText();
         this.prompt.style.display = 'block';
+    }
+
+    /**
+     * Format the high score table as HTML
+     * @param {number[]} scores - Array of high scores
+     * @param {number|null} highlightRank - Rank to highlight (1-indexed), or null
+     * @param {number|null} playerTime - Player's time if they didn't make the list
+     * @returns {string} HTML string for the high score table
+     */
+    formatHighScoreTable(scores, highlightRank = null, playerTime = null) {
+        if (scores.length === 0) {
+            return '';
+        }
+
+        const rankLabels = ['1st', '2nd', '3rd'];
+        let html = '<div class="high-scores">';
+        html += '<p class="high-scores-title">Best Times</p>';
+        html += '<table class="high-scores-table"><tr>';
+
+        for (let i = 0; i < scores.length; i++) {
+            const isHighlighted = highlightRank === i + 1;
+            const highlightClass = isHighlighted ? ' class="highlighted"' : '';
+            html += `<td${highlightClass}><span class="rank">${rankLabels[i]}</span><span class="time">${scores[i].toFixed(1)}s</span></td>`;
+        }
+
+        html += '</tr></table>';
+
+        // If player didn't make the list, show their time below
+        if (playerTime !== null && highlightRank === null) {
+            html += `<p class="high-score-entry player-time">You: ${playerTime.toFixed(1)}s</p>`;
+        }
+
+        html += '<button class="clear-scores-btn">Clear</button>';
+        html += '</div>';
+
+        // Set up clear button listener after DOM updates
+        setTimeout(() => this.setupClearButton(), 0);
+
+        return html;
+    }
+
+    /**
+     * Set up clear scores button click handler
+     */
+    setupClearButton() {
+        const clearBtn = this.overlay?.querySelector('.clear-scores-btn');
+        if (!clearBtn) return;
+
+        clearBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (this.onClearScores) {
+                this.onClearScores();
+            }
+        });
+
+        clearBtn.addEventListener('touchend', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (this.onClearScores) {
+                this.onClearScores();
+            }
+        });
     }
 
     /**
