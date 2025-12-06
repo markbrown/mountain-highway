@@ -21,6 +21,7 @@ mountain-highway/
 │   ├── level.js                    (Level class combining course + islands)
 │   ├── validation.js               (CourseValidator, ValidationError)
 │   ├── debug.js                    (DebugRenderer for overlays)
+│   ├── ui.js                       (UIManager for overlays and buttons)
 │   ├── game.js                     (main game loop and state machine)
 │   ├── physics.js                  (car movement, collisions) - planned
 │   └── audio.js                    (sound effects) - planned
